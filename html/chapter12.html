@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="./">
+    <title>第12章：深度强化学习</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/highlight.css">
+    <script src="assets/script.js" defer></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: false,
+                packages: {'[+]': ['noerrors', 'ams']}
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            loader: {
+                load: ['[tex]/noerrors', '[tex]/ams']
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>目录</h3>
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            <div class="sidebar-search">
+                <input type="text" id="sidebar-search-input" placeholder="搜索..." autocomplete="off">
+            </div>
+            <div id="tree-container">
+                <nav class="tree-nav" role="tree">
+                    <div class="tree-item " >
+                        <a href="index.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">现代人工智能：优化与统计视角</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter1.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第1章：优化基础与梯度下降</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter2.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第2章：统计学习理论</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter3.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第3章：线性模型与正则化</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter4.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第4章：神经网络基础</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter5.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第5章：深度学习优化</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter6.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第6章：卷积神经网络</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter7.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第7章：循环神经网络与序列建模</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter8.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第8章：Transformer与注意力机制</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter9.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第9章：大语言模型</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter10.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第10章：变分自编码器与生成建模</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter11.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第11章：扩散模型</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item active" >
+                        <a href="chapter12.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第12章：深度强化学习</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="CLAUDE.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">Untitled</span>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+        </nav>
+        
+        <main class="content">
+            <article>
+                <h1 id="12">第12章：深度强化学习</h1>
+<h2 id="_1">开篇段落</h2>
+<p>强化学习是人工智能中最接近"智能"本质的领域之一。不同于监督学习需要标注数据，强化学习智能体通过与环境交互，从试错中学习最优策略。当深度学习与强化学习结合，诞生了深度强化学习——这一技术不仅在游戏AI中取得惊人成就（从Atari游戏到围棋、星际争霸），更在机器人控制、自动驾驶、推荐系统等实际应用中展现巨大潜力。本章将从优化视角系统介绍深度强化学习的核心方法，重点关注价值函数近似、策略梯度、以及它们的结合——Actor-Critic架构。我们还将探讨AlphaGo的自我对弈机制、多智能体学习，以及RLHF在大语言模型对齐中的关键作用。</p>
+<h2 id="121">12.1 价值函数近似</h2>
+<h3 id="1211">12.1.1 从表格到函数近似</h3>
+<p>在传统强化学习中，我们用表格存储每个状态的价值函数：</p>
+<p>$$Q(s,a) \leftarrow Q(s,a) + \alpha[r + \gamma \max_{a'} Q(s',a') - Q(s,a)]$$
+但当状态空间巨大（如围棋的$10^{170}$种局面）或连续（如机器人关节角度）时，表格方法失效。解决方案是用函数近似器（如神经网络）表示价值函数：
+$$Q(s,a;\theta) \approx Q^*(s,a)$$
+这将强化学习问题转化为监督学习问题：最小化TD误差的平方：
+$$\mathcal{L}(\theta) = \mathbb{E}_{(s,a,r,s') \sim \mathcal{D}}[(r + \gamma \max_{a'} Q(s',a';\theta^-) - Q(s,a;\theta))^2]$$
+其中$\theta^-$是目标网络参数，用于稳定训练。</p>
+<h3 id="1212-qdqn">12.1.2 深度Q网络（DQN）</h3>
+<p>DQN是深度强化学习的里程碑，首次在Atari游戏中达到人类水平。其核心创新包括：</p>
+<ol>
+<li><strong>经验回放（Experience Replay）</strong></li>
+</ol>
+<div class="codehilite"><pre><span></span><code>经验池：D = {(s₁,a₁,r₁,s&#39;₁), (s₂,a₂,r₂,s&#39;₂), ..., (sₙ,aₙ,rₙ,s&#39;ₙ)}
+         ↓
+   随机采样批次训练
+</code></pre></div>
+
+<p>打破样本相关性，提高样本效率，使训练更稳定。</p>
+<ol start="2">
+<li><strong>目标网络（Target Network）</strong></li>
+</ol>
+<p>使用独立的目标网络$Q(s,a;\theta^-)$计算TD目标，每隔C步更新：$\theta^- \leftarrow \theta$</p>
+<p>这避免了"追逐移动目标"的问题，大幅提升训练稳定性。</p>
+<ol start="3">
+<li><strong>ε-贪婪探索</strong></li>
+</ol>
+<p>以概率ε选择随机动作，以概率1-ε选择贪婪动作：
+$$a = \begin{cases}
+\text{random action} &amp; \text{with probability } \epsilon \\
+\arg\max_a Q(s,a;\theta) &amp; \text{with probability } 1-\epsilon
+\end{cases}$$
+典型设置：ε从1.0线性衰减到0.1，在100万步内完成。</p>
+<h3 id="1213-dqn">12.1.3 DQN的改进</h3>
+<p><strong>Double DQN</strong>：解决Q值过估计问题</p>
+<p>标准DQN的目标：
+$$y = r + \gamma \max_{a'} Q(s',a';\theta^-)$$
+Double DQN的目标：
+$$y = r + \gamma Q(s', \arg\max_{a'} Q(s',a';\theta);\theta^-)$$
+动作选择用当前网络，价值评估用目标网络，有效减少过估计偏差。</p>
+<p><strong>Dueling DQN</strong>：分解价值函数</p>
+<p>将Q函数分解为状态价值V和优势函数A：
+$$Q(s,a;\theta,\alpha,\beta) = V(s;\theta,\beta) + A(s,a;\theta,\alpha) - \frac{1}{|\mathcal{A}|}\sum_{a'} A(s,a';\theta,\alpha)$$
+这种分解让网络更容易学习哪些状态重要，哪些动作带来额外优势。</p>
+<p><strong>Rainbow DQN</strong>：集成多种改进</p>
+<p>Rainbow将七种改进集成：Double DQN、Dueling DQN、优先经验回放、多步学习、分布式RL、噪声网络、分类DQN。实践表明，优先经验回放和多步学习贡献最大。</p>
+<h2 id="122">12.2 策略梯度方法</h2>
+<h3 id="1221-reinforce">12.2.1 REINFORCE算法</h3>
+<p>不同于价值方法学习Q函数再导出策略，策略梯度直接优化参数化策略$\pi_\theta(a|s)$：</p>
+<p>目标函数（期望回报）：
+$$J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[R(\tau)] = \mathbb{E}_{\tau \sim \pi_\theta}[\sum_{t=0}^T \gamma^t r_t]$$
+策略梯度定理给出梯度的解析形式：
+$$\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[\sum_{t=0}^T \nabla_\theta \log \pi_\theta(a_t|s_t) G_t]$$
+其中$G_t = \sum_{k=t}^T \gamma^{k-t} r_k$是从时刻t开始的回报。</p>
+<p>REINFORCE算法步骤：</p>
+<ol>
+<li>采样轨迹：$\tau = (s_0,a_0,r_0,...,s_T,a_T,r_T)$</li>
+<li>计算回报：$G_t = \sum_{k=t}^T \gamma^{k-t} r_k$</li>
+<li>更新参数：$\theta \leftarrow \theta + \alpha \sum_{t=0}^T \nabla_\theta \log \pi_\theta(a_t|s_t) G_t$</li>
+</ol>
+<h3 id="1222">12.2.2 方差减少技术</h3>
+<p>REINFORCE的主要问题是方差过大，导致训练不稳定。关键改进：</p>
+<p><strong>基线（Baseline）</strong>：
+$$\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[\sum_{t=0}^T \nabla_\theta \log \pi_\theta(a_t|s_t) (G_t - b(s_t))]$$
+常用基线是状态价值函数$V(s_t)$，这给出优势函数$A_t = G_t - V(s_t)$。</p>
+<p><strong>重要性采样（Importance Sampling）</strong>：</p>
+<p>当用旧策略$\pi_{old}$的数据更新当前策略$\pi_\theta$时：
+$$\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_{old}}[\sum_{t=0}^T \frac{\pi_\theta(a_t|s_t)}{\pi_{old}(a_t|s_t)} \nabla_\theta \log \pi_\theta(a_t|s_t) A_t]$$</p>
+<h3 id="1223-ppo">12.2.3 近端策略优化（PPO）</h3>
+<p>PPO是目前最流行的策略梯度算法，在LLM的RLHF中广泛应用。核心思想是限制每次更新的步长：</p>
+<p><strong>PPO-Clip目标函数</strong>：
+$$L^{CLIP}(\theta) = \mathbb{E}_t[\min(r_t(\theta)A_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)A_t)]$$
+其中$r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{old}(a_t|s_t)}$是重要性采样比率。</p>
+<div class="codehilite"><pre><span></span><code>         r_t(θ)
+           │
+    ┌──────┼──────┐
+    │      │      │
+  1-ε      1     1+ε
+    └──────┴──────┘
+       clip区间
+</code></pre></div>
+
+<p>当优势为正（A &gt; 0）时，鼓励增大该动作概率，但限制在1+ε内；
+当优势为负（A &lt; 0）时，鼓励减小该动作概率，但限制在1-ε内。</p>
+<p>典型超参数：ε = 0.2，即每次更新策略变化不超过20%。</p>
+<h2 id="123-actor-critic">12.3 Actor-Critic架构</h2>
+<h3 id="1231">12.3.1 基本架构</h3>
+<p>Actor-Critic结合了价值方法和策略方法的优点：</p>
+<ul>
+<li>Actor（演员）：策略网络$\pi_\theta(a|s)$，负责选择动作</li>
+<li>Critic（评论家）：价值网络$V_\phi(s)$或$Q_\psi(s,a)$，负责评估动作</li>
+</ul>
+<div class="codehilite"><pre><span></span><code>状态 s ──┬──→ Actor π(a|s) ──→ 动作 a
+         │                         ↓
+         └──→ Critic V(s) ──→ 价值估计
+                ↑                  │
+                └──────────────────┘
+                   TD误差用于更新
+</code></pre></div>
+
+<p>更新规则：</p>
+<ul>
+<li>Critic更新：最小化TD误差 $\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$</li>
+<li>Actor更新：$\theta \leftarrow \theta + \alpha \nabla_\theta \log \pi_\theta(a_t|s_t) \delta_t$</li>
+</ul>
+<h3 id="1232-actor-critica3c">12.3.2 异步优势Actor-Critic（A3C）</h3>
+<p>A3C通过并行化提升训练效率：</p>
+<div class="codehilite"><pre><span></span><code>    Global Network
+    θ_global, φ_global
+           ↑
+    异步更新梯度
+     ↗  ↗  ↗  ↗
+Worker1 Worker2 ... WorkerN
+  ↓       ↓           ↓
+ Env1    Env2   ...  EnvN
+</code></pre></div>
+
+<p>每个worker独立与环境交互，定期将梯度推送到全局网络。这种异步更新自然引入探索多样性，无需经验回放。</p>
+<h3 id="1233-actor-criticsac">12.3.3 软Actor-Critic（SAC）</h3>
+<p>SAC引入最大熵框架，在优化期望回报的同时最大化策略熵：
+$$J(\pi) = \mathbb{E}_{\tau \sim \pi}[\sum_{t=0}^T (r_t + \alpha \mathcal{H}(\pi(\cdot|s_t)))]$$
+其中$\mathcal{H}(\pi(\cdot|s_t)) = -\mathbb{E}_{a \sim \pi}[\log \pi(a|s_t)]$是策略熵。</p>
+<p>优点：</p>
+<ol>
+<li>鼓励探索（高熵意味着更随机的动作选择）</li>
+<li>提高鲁棒性（避免过早收敛到次优策略）</li>
+<li>自动调节探索-利用平衡</li>
+</ol>
+<p>温度参数α可自适应调节：
+$$\alpha_t = \alpha_{t-1} - \lambda \nabla_\alpha (\mathcal{H}(\pi) - \mathcal{H}_{target})$$
+使策略熵维持在目标水平$\mathcal{H}_{target}$附近。</p>
+<h2 id="124-alphago">12.4 AlphaGo与自我对弈</h2>
+<h3 id="1241-mcts">12.4.1 蒙特卡洛树搜索（MCTS）</h3>
+<p>AlphaGo的核心是将深度学习与MCTS结合。MCTS通过模拟未来对局评估当前局面：</p>
+<div class="codehilite"><pre><span></span><code>        根节点(当前局面)
+         /    |    \
+       /      |      \
+     动作1  动作2   动作3
+      /\      |       /\
+    ...     叶节点   ...
+
+MCTS四步骤：
+
+1. 选择(Selection)：从根节点向下选择
+2. 扩展(Expansion)：添加新节点
+3. 模拟(Simulation)：随机走子到终局
+4. 回传(Backpropagation)：更新路径上所有节点
+</code></pre></div>
+
+<p>节点选择使用UCT（Upper Confidence Bound for Trees）：
+$$a = \arg\max_a \left( Q(s,a) + c \sqrt{\frac{\ln N(s)}{N(s,a)}} \right)$$
+第一项是利用（选择高价值动作），第二项是探索（选择访问次数少的动作）。</p>
+<h3 id="1242-alphago">12.4.2 AlphaGo的神经网络</h3>
+<p>AlphaGo使用两个网络指导MCTS：</p>
+<p><strong>策略网络$p_\sigma(a|s)$</strong>：预测人类专家的落子</p>
+<ul>
+<li>输入：19×19×48的特征（棋盘状态、气、打吃等）</li>
+<li>输出：361个位置的概率分布</li>
+<li>训练：先用3000万人类棋谱监督学习，再通过自我对弈强化学习</li>
+</ul>
+<p><strong>价值网络$v_\theta(s)$</strong>：评估局面胜率</p>
+<ul>
+<li>输入：与策略网络相同</li>
+<li>输出：当前玩家的胜率[-1, 1]</li>
+<li>训练：用自我对弈产生的局面和最终结果</li>
+</ul>
+<h3 id="1243-alphago-zero">12.4.3 AlphaGo Zero：纯自我对弈</h3>
+<p>AlphaGo Zero完全摒弃人类知识，从随机初始化开始：</p>
+<p><strong>统一网络架构</strong>：
+$$(p, v) = f_\theta(s)$$
+同时输出策略和价值，共享特征提取层。</p>
+<p><strong>自我对弈训练循环</strong>：</p>
+<ol>
+<li>用当前网络+MCTS进行自我对弈，生成训练数据</li>
+<li>
+<p>训练网络最小化损失：
+$$\mathcal{L} = (z - v)^2 - \pi^T \log p + c||\theta||^2$$
+其中z是实际游戏结果，π是MCTS改进的策略</p>
+</li>
+<li>
+<p>评估新网络，如果胜率&gt;55%则更新</p>
+</li>
+</ol>
+<p><strong>关键创新</strong>：</p>
+<ul>
+<li>残差网络架构（相比AlphaGo的普通卷积）</li>
+<li>MCTS中用网络预测代替随机rollout</li>
+<li>数据增强：利用围棋的8重对称性</li>
+</ul>
+<p>仅用4个TPU训练3天，AlphaGo Zero就超越了AlphaGo Master。</p>
+<h3 id="1244-muzero">12.4.4 MuZero：无模型的规划</h3>
+<p>MuZero将AlphaGo的方法推广到未知规则的环境：</p>
+<p>三个网络：</p>
+<ul>
+<li>表示网络：$h = h_\theta(o_1,...,o_t)$ 将观察历史编码为隐状态</li>
+<li>动态网络：$h', r = g_\theta(h, a)$ 预测下一隐状态和奖励</li>
+<li>预测网络：$(p, v) = f_\theta(h)$ 输出策略和价值</li>
+</ul>
+<p>在隐空间中进行MCTS规划，无需知道真实环境动态。</p>
+<h2 id="125-openai-five">12.5 OpenAI Five与多智能体学习</h2>
+<h3 id="1251-dota-2">12.5.1 Dota 2的挑战</h3>
+<p>Dota 2比围棋复杂得多：</p>
+<ul>
+<li>状态空间：~20,000维连续观察</li>
+<li>动作空间：170,000种离散动作</li>
+<li>部分可观察：战争迷雾</li>
+<li>长期信用分配：平均45分钟，~20,000个决策</li>
+<li>团队协作：5v5需要复杂配合</li>
+</ul>
+<h3 id="1252">12.5.2 大规模分布式训练</h3>
+<p>OpenAI Five的训练规模前所未有：</p>
+<div class="codehilite"><pre><span></span><code>     Optimizer (CPU)
+          ↓
+    参数更新 (Adam)
+          ↓
+   ┌──────────────┐
+   │  GPU Workers │ × 1024
+   │   前向传播   │
+   └──────────────┘
+          ↓
+   ┌──────────────┐
+   │ CPU Rollouts │ × 128,000
+   │   环境交互   │
+   └──────────────┘
+
+每天相当于180年游戏时间
+</code></pre></div>
+
+<p>使用PPO算法，但有关键修改：</p>
+<ul>
+<li>大批量：批大小60,000样本</li>
+<li>长时间范围：16,000步的GAE</li>
+<li>快速迭代：每2分钟更新一次模型</li>
+</ul>
+<h3 id="1253">12.5.3 涌现的团队策略</h3>
+<p>训练过程中观察到策略演化：</p>
+<ol>
+<li><strong>初期</strong>（~2周）：学会基本操作，随机游走</li>
+<li><strong>中期</strong>（~1月）：出现简单配合，如2v1 gank</li>
+<li><strong>后期</strong>（~2月）：复杂团战配合，假动作欺骗</li>
+</ol>
+<p>令人惊讶的涌现行为：</p>
+<ul>
+<li><strong>牺牲</strong>：辅助主动送死让核心英雄获得经验</li>
+<li><strong>诱饵</strong>：故意暴露引诱敌人进入埋伏</li>
+<li><strong>经济分配</strong>：自动形成1号位到5号位的资源分配</li>
+</ul>
+<h3 id="1254">12.5.4 多智能体学习的关键技术</h3>
+<p><strong>集中训练，分散执行</strong>：</p>
+<ul>
+<li>训练时共享全局信息优化团队奖励</li>
+<li>执行时每个智能体独立决策</li>
+</ul>
+<p><strong>团队奖励塑形</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">team_reward</span> <span class="o">=</span> <span class="n">游戏胜负</span> <span class="o">+</span> <span class="mf">0.5</span><span class="err">×</span><span class="n">团队击杀</span> <span class="o">+</span> <span class="mf">0.3</span><span class="err">×</span><span class="n">推塔</span> <span class="o">+</span> <span class="mf">0.2</span><span class="err">×</span><span class="n">经济领先</span>
+<span class="n">individual_reward</span> <span class="o">=</span> <span class="mf">0.7</span><span class="err">×</span><span class="n">team_reward</span> <span class="o">+</span> <span class="mf">0.3</span><span class="err">×</span><span class="n">individual_contribution</span>
+</code></pre></div>
+
+<p><strong>课程学习</strong>：</p>
+<ul>
+<li>开始：限制英雄池（5个英雄）</li>
+<li>逐步增加：物品系统、技能升级、更多英雄</li>
+<li>最终：完整游戏规则</li>
+</ul>
+<h2 id="126">12.6 历史人物：理查德·萨顿与强化学习的现代框架</h2>
+<p>理查德·萨顿（Richard Sutton）被誉为"强化学习之父"。他的贡献奠定了现代强化学习的理论基础。</p>
+<p><strong>时序差分学习（TD Learning）</strong>：
+萨顿在1988年提出TD(λ)算法，统一了蒙特卡洛方法和动态规划：
+$$V(s) \leftarrow V(s) + \alpha[r + \gamma V(s') - V(s)]$$
+这个简洁的更新规则成为几乎所有现代RL算法的基础。</p>
+<p><strong>《强化学习导论》</strong>：
+与Andrew Barto合著的教科书成为领域圣经，定义了标准术语和数学框架：</p>
+<ul>
+<li>马尔可夫决策过程（MDP）</li>
+<li>价值函数与贝尔曼方程</li>
+<li>探索与利用的权衡</li>
+</ul>
+<p><strong>"苦涩的教训"（The Bitter Lesson, 2019）</strong>：
+萨顿总结了AI研究70年的经验教训：</p>
+<blockquote>
+<p>"The biggest lesson that can be read from 70 years of AI research is that general methods that leverage computation are ultimately the most effective."</p>
+</blockquote>
+<p>核心观点：</p>
+<ol>
+<li>通用方法+大规模计算 &gt; 人类知识编码</li>
+<li>搜索和学习是最重要的两个通用方法</li>
+<li>摩尔定律使计算指数增长，应该顺势而为</li>
+</ol>
+<p>这篇文章深刻影响了大模型时代的研究方向。</p>
+<p><strong>对深度RL的预见</strong>：
+早在2015年DQN发表前，萨顿就预言函数近似将revolutionize RL。他提出的"预测+控制"框架完美适配深度学习时代。</p>
+<h2 id="127-rlhfllm">12.7 现代连接：RLHF在LLM对齐中的应用</h2>
+<h3 id="1271">12.7.1 从预训练到对齐</h3>
+<p>大语言模型的训练分为两个阶段：</p>
+<p><strong>预训练</strong>：最大似然估计
+$$\mathcal{L}_{MLE} = -\mathbb{E}_{x \sim \mathcal{D}}[\log p_\theta(x)]$$
+预训练模型学会了语言建模，但可能生成有害、偏见或低质量内容。</p>
+<p><strong>对齐</strong>：使模型行为符合人类价值观</p>
+<ul>
+<li>Helpful（有用）：准确回答问题，完成任务</li>
+<li>Harmless（无害）：拒绝有害请求，避免偏见</li>
+<li>Honest（诚实）：承认不确定性，不编造信息</li>
+</ul>
+<h3 id="1272-rlhf">12.7.2 RLHF的三步流程</h3>
+<p><strong>Step 1: 监督微调（SFT）</strong>
+收集高质量的(prompt, response)对，微调预训练模型：
+$$\mathcal{L}_{SFT} = -\mathbb{E}_{(x,y) \sim \mathcal{D}_{demo}}[\log \pi_{SFT}(y|x)]$$
+典型数据规模：10K-100K高质量样本。</p>
+<p><strong>Step 2: 奖励模型训练</strong>
+收集人类偏好数据：对同一prompt的多个response进行排序。</p>
+<p>训练奖励模型预测人类偏好：
+$$\mathcal{L}_R = -\mathbb{E}_{(x,y_w,y_l)}[\log \sigma(r_\phi(x,y_w) - r_\phi(x,y_l))]$$
+其中$y_w$是偏好的回复，$y_l$是较差的回复。</p>
+<p><strong>Step 3: PPO优化</strong>
+用强化学习优化语言模型，最大化奖励同时避免偏离SFT模型：
+$$\mathcal{L}_{PPO} = \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi_\theta}[r_\phi(x,y)] - \beta \cdot KL[\pi_\theta || \pi_{SFT}]$$
+KL惩罚项防止模型"过度优化"奖励函数（reward hacking）。</p>
+<h3 id="1273-rlhf">12.7.3 RLHF的关键技术细节</h3>
+<p><strong>PPO在LLM中的适配</strong>：</p>
+<p>将生成视为序列决策问题：</p>
+<ul>
+<li>状态$s_t$：已生成的token序列</li>
+<li>动作$a_t$：下一个token</li>
+<li>奖励：仅在序列结束时给出（稀疏奖励）</li>
+</ul>
+<div class="codehilite"><pre><span></span><code><span class="nl">Prompt</span><span class="p">:</span><span class="w"> </span><span class="ss">&quot;写一首诗&quot;</span>
+<span class="w">    </span><span class="err">↓</span>
+<span class="nl">State₀</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">BOS</span><span class="o">]</span>
+<span class="nl">Action₀</span><span class="p">:</span><span class="w"> </span><span class="ss">&quot;春&quot;</span>
+<span class="w">    </span><span class="err">↓</span>
+<span class="nl">State₁</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">BOS, 春</span><span class="o">]</span>
+<span class="nl">Action₁</span><span class="p">:</span><span class="w"> </span><span class="ss">&quot;风&quot;</span>
+<span class="w">    </span><span class="err">↓</span>
+<span class="w">    </span><span class="p">...</span>
+<span class="w">    </span><span class="err">↓</span>
+<span class="nl">StateT</span><span class="p">:</span><span class="w"> </span><span class="o">[</span><span class="n">BOS, 春, 风, ..., 。</span><span class="o">]</span>
+<span class="nl">Reward</span><span class="p">:</span><span class="w"> </span><span class="n">r</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span><span class="w"> </span><span class="n">full_response</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>价值函数初始化</strong>：
+用SFT模型初始化Actor，用奖励模型初始化Critic的最后一层，加速收敛。</p>
+<p><strong>优势估计</strong>：
+由于奖励稀疏，使用奖励模型的中间激活作为伪奖励：
+$$r_t = \begin{cases}
+r_\phi(x, y_{1:T}) &amp; t = T \\
+\gamma V(s_{t+1}) - V(s_t) &amp; t &lt; T
+\end{cases}$$</p>
+<h3 id="1274-constitutional-airlhf">12.7.4 Constitutional AI：自我改进的RLHF</h3>
+<p>Anthropic提出的Constitutional AI让模型自我批评和改进：</p>
+<p><strong>第一阶段：Constitutional SFT</strong></p>
+<ol>
+<li>生成初始回复</li>
+<li>让模型自我批评："这个回复是否包含有害内容？"</li>
+<li>如果有问题，让模型修正</li>
+<li>用修正后的回复进行SFT</li>
+</ol>
+<p><strong>第二阶段：Constitutional RLHF</strong>
+用AI反馈替代人类反馈：</p>
+<ol>
+<li>生成多个回复</li>
+<li>让模型根据宪法原则评分</li>
+<li>训练奖励模型</li>
+<li>PPO优化</li>
+</ol>
+<p>宪法原则示例：</p>
+<ul>
+<li>"选择最有帮助、无害、诚实的回复"</li>
+<li>"避免给出可能造成伤害的建议"</li>
+<li>"如果不确定，承认局限性而非编造"</li>
+</ul>
+<h3 id="1275-rlhf">12.7.5 RLHF的挑战与未来</h3>
+<p><strong>奖励模型的局限</strong>：</p>
+<ul>
+<li>分布外泛化差：训练时未见过的prompt类型</li>
+<li>奖励操纵：模型学会欺骗奖励函数</li>
+<li>人类反馈噪声：标注者之间分歧大</li>
+</ul>
+<p><strong>直接偏好优化（DPO）</strong>：
+绕过奖励模型，直接从偏好数据优化策略：
+$$\mathcal{L}_{DPO} = -\mathbb{E}[\log \sigma(\beta \log \frac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)})]$$
+DPO将RLHF简化为单一的监督学习问题，训练更稳定。</p>
+<p><strong>在线RLHF</strong>：
+实时收集用户反馈，持续改进：</p>
+<div class="codehilite"><pre><span></span><code>用户交互 → 隐式/显式反馈 → 更新奖励模型 → PPO微调
+     ↑                                      ↓
+     └──────────── 部署新模型 ←─────────────┘
+</code></pre></div>
+
+<h2 id="128">12.8 本章小结</h2>
+<p>深度强化学习将深度学习的表征能力与强化学习的决策框架结合，在游戏AI、机器人控制、对话系统等领域取得突破性进展。</p>
+<p><strong>核心概念回顾</strong>：</p>
+<ol>
+<li>
+<p><strong>价值函数近似</strong>：用神经网络表示Q函数或V函数，DQN通过经验回放和目标网络实现稳定训练</p>
+</li>
+<li>
+<p><strong>策略梯度</strong>：直接优化参数化策略，REINFORCE提供基础算法，PPO通过限制更新步长提高稳定性</p>
+</li>
+<li>
+<p><strong>Actor-Critic</strong>：结合价值和策略方法的优点，A3C实现高效并行训练，SAC引入最大熵框架</p>
+</li>
+<li>
+<p><strong>自我对弈</strong>：AlphaGo展示了MCTS与深度学习的强大结合，通过自我对弈达到超人水平</p>
+</li>
+<li>
+<p><strong>多智能体学习</strong>：OpenAI Five展示了简单RL算法+大规模计算的威力，涌现复杂团队行为</p>
+</li>
+<li>
+<p><strong>RLHF</strong>：将RL应用于LLM对齐，通过人类反馈优化模型行为，成为ChatGPT成功的关键</p>
+</li>
+</ol>
+<p><strong>关键公式汇总</strong>：</p>
+<ul>
+<li>TD误差：$\delta = r + \gamma V(s') - V(s)$</li>
+<li>DQN损失：$\mathcal{L} = (r + \gamma \max_{a'} Q(s',a';\theta^-) - Q(s,a;\theta))^2$</li>
+<li>策略梯度：$\nabla J = \mathbb{E}[\nabla \log \pi(a|s) A(s,a)]$</li>
+<li>PPO目标：$L = \min(r(\theta)A, \text{clip}(r(\theta), 1-\epsilon, 1+\epsilon)A)$</li>
+<li>RLHF目标：$J = \mathbb{E}[r(x,y)] - \beta \cdot KL[\pi||\pi_{ref}]$</li>
+</ul>
+<h2 id="129">12.9 常见陷阱与错误</h2>
+<h3 id="1">陷阱1：奖励工程不当</h3>
+<p><strong>问题</strong>：设计的奖励函数被智能体"hack"</p>
+<div class="codehilite"><pre><span></span><code>例：训练机器人抓取物体
+错误奖励：r = 手臂高度
+结果：机器人学会举手而非抓取
+</code></pre></div>
+
+<p><strong>解决方案</strong>：</p>
+<ul>
+<li>稀疏奖励：仅在完成任务时给奖励</li>
+<li>奖励塑形要谨慎：确保不改变最优策略</li>
+<li>逆强化学习：从专家演示中学习奖励函数</li>
+</ul>
+<h3 id="2">陷阱2：探索不足</h3>
+<p><strong>问题</strong>：智能体陷入局部最优，不愿尝试新动作</p>
+<p><strong>解决方案</strong>：</p>
+<ul>
+<li>ε-贪婪探索：保持最小探索率（如0.01）</li>
+<li>熵正则化：如SAC中的最大熵框架</li>
+<li>好奇心驱动：内在奖励鼓励探索新状态</li>
+<li>噪声注入：在动作或参数中加入噪声</li>
+</ul>
+<h3 id="3">陷阱3：分布偏移</h3>
+<p><strong>问题</strong>：训练分布与测试分布不一致</p>
+<div class="codehilite"><pre><span></span><code>训练：从固定起点开始
+测试：从任意状态开始
+结果：智能体在新起点失败
+</code></pre></div>
+
+<p><strong>解决方案</strong>：</p>
+<ul>
+<li>域随机化：训练时随机化环境参数</li>
+<li>课程学习：逐步增加任务难度</li>
+<li>在线学习：部署后继续学习适应</li>
+</ul>
+<h3 id="4">陷阱4：梯度估计方差过大</h3>
+<p><strong>问题</strong>：REINFORCE等算法方差极大，训练不稳定</p>
+<p><strong>诊断方法</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 监控梯度范数</span>
+<span class="n">grad_norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">max_norm</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">grad_norm</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning: Large gradient detected&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>解决方案</strong>：</p>
+<ul>
+<li>使用基线减少方差</li>
+<li>增大批量大小</li>
+<li>梯度裁剪</li>
+<li>使用GAE（Generalized Advantage Estimation）</li>
+</ul>
+<h3 id="5">陷阱5：超参数敏感性</h3>
+<p><strong>问题</strong>：RL算法对超参数极其敏感</p>
+<p><strong>关键超参数及经验值</strong>：</p>
+<ul>
+<li>学习率：3e-4（PPO）、1e-3（DQN）</li>
+<li>折扣因子γ：0.99（长期任务）、0.95（短期任务）</li>
+<li>PPO clip范围：0.1-0.3</li>
+<li>目标网络更新频率：1000-10000步</li>
+</ul>
+<p><strong>调试技巧</strong>：</p>
+<ol>
+<li>先在简单环境（CartPole）验证实现</li>
+<li>使用网格搜索或贝叶斯优化</li>
+<li>记录所有超参数用于复现</li>
+</ol>
+<h3 id="6">陷阱6：样本效率低</h3>
+<p><strong>问题</strong>：需要海量交互才能学会简单任务</p>
+<p><strong>解决方案</strong>：</p>
+<ul>
+<li>使用off-policy算法（如SAC）重用旧数据</li>
+<li>模型based RL：学习环境模型减少真实交互</li>
+<li>迁移学习：从相关任务预训练</li>
+<li>演示数据：结合模仿学习</li>
+</ul>
+<h3 id="7">陷阱7：训练不稳定</h3>
+<p><strong>症状</strong>：</p>
+<ul>
+<li>性能突然崩溃</li>
+<li>学习曲线剧烈震荡</li>
+<li>Q值发散到无穷</li>
+</ul>
+<p><strong>诊断检查清单</strong>：</p>
+<ol>
+<li>检查奖励是否有界</li>
+<li>监控KL散度（PPO）</li>
+<li>检查目标网络是否正常更新</li>
+<li>验证经验回放是否正确采样</li>
+<li>确认梯度没有爆炸或消失</li>
+</ol>
+<h2 id="1210">12.10 练习题</h2>
+<h3 id="_2">基础题</h3>
+<p><strong>练习12.1</strong> TD误差与蒙特卡洛误差
+给定轨迹：$s_0 \xrightarrow{a_0, r_0=1} s_1 \xrightarrow{a_1, r_1=2} s_2 \xrightarrow{a_2, r_2=3} s_{终止}$，
+当前价值估计：$V(s_0)=2, V(s_1)=3, V(s_2)=1$，折扣因子$\gamma=0.9$。</p>
+<p>计算：
+a) $s_0$的TD误差
+b) $s_0$的蒙特卡洛误差
+c) 解释两者的区别</p>
+<details>
+<summary>提示</summary>
+<p>TD误差使用下一状态的估计值，蒙特卡洛使用实际回报。</p>
+</details>
+<details>
+<summary>答案</summary>
+<p>a) TD误差：$\delta_0 = r_0 + \gamma V(s_1) - V(s_0) = 1 + 0.9 \times 3 - 2 = 1.7$</p>
+<p>b) 蒙特卡洛回报：$G_0 = 1 + 0.9 \times 2 + 0.81 \times 3 = 5.23$
+   蒙特卡洛误差：$G_0 - V(s_0) = 5.23 - 2 = 3.23$</p>
+<p>c) TD误差只使用一步信息，偏差大但方差小；蒙特卡洛使用完整轨迹，无偏但方差大。</p>
+</details>
+<p><strong>练习12.2</strong> DQN的目标网络
+解释为什么DQN需要目标网络。如果直接用$y = r + \gamma \max_{a'} Q(s',a';\theta)$作为目标会发生什么？</p>
+<details>
+<summary>提示</summary>
+<p>考虑目标依赖于正在优化的参数时会发生什么。</p>
+</details>
+<details>
+<summary>答案</summary>
+<p>不使用目标网络会导致：</p>
+<ol>
+<li>目标值随每次更新而变化，像"追逐移动的目标"</li>
+<li>高估偏差加剧：网络倾向于高估Q值，更新又基于这些高估值</li>
+<li>训练不稳定甚至发散：正反馈循环导致Q值爆炸</li>
+</ol>
+<p>目标网络通过固定目标一段时间，打破这种循环，提供稳定的优化目标。</p>
+</details>
+<p><strong>练习12.3</strong> 策略梯度的推导
+证明策略梯度定理：$\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[\sum_t \nabla_\theta \log \pi_\theta(a_t|s_t) G_t]$</p>
+<details>
+<summary>提示</summary>
+<p>使用对数导数技巧：$\nabla_\theta p_\theta = p_\theta \nabla_\theta \log p_\theta$</p>
+</details>
+<details>
+<summary>答案</summary>
+<p>目标函数：$J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[R(\tau)] = \int p_\theta(\tau) R(\tau) d\tau$</p>
+<p>求梯度：
+$$\nabla_\theta J = \nabla_\theta \int p_\theta(\tau) R(\tau) d\tau = \int \nabla_\theta p_\theta(\tau) R(\tau) d\tau$$
+使用对数导数技巧：
+$$= \int p_\theta(\tau) \nabla_\theta \log p_\theta(\tau) R(\tau) d\tau = \mathbb{E}_{\tau \sim \pi_\theta}[\nabla_\theta \log p_\theta(\tau) R(\tau)]$$
+其中$p_\theta(\tau) = p(s_0) \prod_t \pi_\theta(a_t|s_t) p(s_{t+1}|s_t,a_t)$</p>
+<p>因此：$\nabla_\theta \log p_\theta(\tau) = \sum_t \nabla_\theta \log \pi_\theta(a_t|s_t)$</p>
+<p>最终得到策略梯度定理。</p>
+</details>
+<h3 id="_3">挑战题</h3>
+<p><strong>练习12.4</strong> PPO的clip机制分析
+PPO的clip目标函数为：$L = \min(r(\theta)A, \text{clip}(r(\theta), 1-\epsilon, 1+\epsilon)A)$</p>
+<p>分析以下四种情况下的梯度：
+a) $A &gt; 0, r(\theta) &gt; 1+\epsilon$
+b) $A &gt; 0, r(\theta) &lt; 1-\epsilon$<br />
+c) $A &lt; 0, r(\theta) &gt; 1+\epsilon$
+d) $A &lt; 0, r(\theta) &lt; 1-\epsilon$</p>
+<details>
+<summary>提示</summary>
+<p>画出目标函数关于$r(\theta)$的图像，分析在不同区间的行为。</p>
+</details>
+<details>
+<summary>答案</summary>
+<p>a) $A &gt; 0, r(\theta) &gt; 1+\epsilon$：
+   目标被clip在$(1+\epsilon)A$，梯度为0，防止过度增大动作概率</p>
+<p>b) $A &gt; 0, r(\theta) &lt; 1-\epsilon$：
+   取$\min$后为$r(\theta)A$，有正梯度，鼓励增大动作概率</p>
+<p>c) $A &lt; 0, r(\theta) &gt; 1+\epsilon$：
+   取$\min$后为$r(\theta)A$（负值），有负梯度，鼓励减小动作概率</p>
+<p>d) $A &lt; 0, r(\theta) &lt; 1-\epsilon$：
+   目标被clip在$(1-\epsilon)A$，梯度为0，防止过度减小动作概率</p>
+<p>总结：PPO允许向好的方向改进，但限制每次更新的幅度。</p>
+</details>
+<p><strong>练习12.5</strong> RLHF中的分布偏移
+在RLHF训练中，策略$\pi_\theta$会逐渐偏离初始策略$\pi_{SFT}$。如果没有KL惩罚项，会出现什么问题？设计实验验证你的假设。</p>
+<details>
+<summary>提示</summary>
+<p>考虑奖励模型的训练分布和泛化能力。</p>
+</details>
+<details>
+<summary>答案</summary>
+<p>没有KL惩罚会导致"奖励黑客"问题：</p>
+<ol>
+<li><strong>分布偏移</strong>：$\pi_\theta$生成的文本越来越不像训练奖励模型时的分布</li>
+<li><strong>奖励模型失效</strong>：在分布外数据上，奖励模型给出不可靠的高分</li>
+<li><strong>模式坍塌</strong>：模型学会生成特定模式以最大化（错误的）奖励</li>
+</ol>
+<p>实验设计：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 训练两个模型：有/无KL惩罚</span>
+<span class="n">model_with_kl</span> <span class="o">=</span> <span class="n">train_rlhf</span><span class="p">(</span><span class="n">kl_coeff</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="n">model_without_kl</span> <span class="o">=</span> <span class="n">train_rlhf</span><span class="p">(</span><span class="n">kl_coeff</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+
+<span class="c1"># 评估指标</span>
+<span class="c1"># 1. 困惑度：测量偏离原始分布程度</span>
+<span class="c1"># 2. 多样性：测量生成文本的重复性</span>
+<span class="c1"># 3. 人类评估：真实质量 vs 奖励模型分数</span>
+
+<span class="c1"># 预期结果：</span>
+<span class="c1"># model_without_kl会有更高的奖励分数但更低的真实质量</span>
+</code></pre></div>
+
+</details>
+<p><strong>练习12.6</strong> AlphaGo的MCTS改进
+标准MCTS使用随机rollout估计叶节点价值。AlphaGo Zero用价值网络$v_\theta(s)$替代。分析这种改进的优缺点，并提出一种结合两者优点的混合方法。</p>
+<details>
+<summary>提示</summary>
+<p>考虑计算效率、估计偏差和方差。</p>
+</details>
+<details>
+<summary>答案</summary>
+<p><strong>随机rollout</strong>：</p>
+<ul>
+<li>优点：无偏估计（给定足够模拟）</li>
+<li>缺点：方差大，计算昂贵，需要大量模拟</li>
+</ul>
+<p><strong>价值网络</strong>：</p>
+<ul>
+<li>优点：快速评估，方差小</li>
+<li>缺点：有偏差，泛化到新局面可能不准</li>
+</ul>
+<p><strong>混合方法</strong>：
+$$v_{mix}(s) = \lambda \cdot v_\theta(s) + (1-\lambda) \cdot v_{rollout}(s)$$
+自适应权重：</p>
+<ul>
+<li>开局和中局：更依赖价值网络（$\lambda = 0.8$）</li>
+<li>终局：更依赖rollout（$\lambda = 0.3$）</li>
+<li>不确定性高时：增加rollout权重</li>
+</ul>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">evaluate_leaf</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">uncertainty_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+    <span class="n">value_nn</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict_value</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="n">uncertainty</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict_uncertainty</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">uncertainty</span> <span class="o">&gt;</span> <span class="n">uncertainty_threshold</span><span class="p">:</span>
+        <span class="c1"># 高不确定性，使用rollout</span>
+        <span class="n">value_rollout</span> <span class="o">=</span> <span class="n">monte_carlo_rollout</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">n_simulations</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="n">value_nn</span> <span class="o">+</span> <span class="mf">0.7</span> <span class="o">*</span> <span class="n">value_rollout</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># 低不确定性，信任网络</span>
+        <span class="k">return</span> <span class="n">value_nn</span>
+</code></pre></div>
+
+</details>
+<p><strong>练习12.7</strong> 多智能体学习的纳什均衡
+考虑两个智能体的零和游戏。证明如果两个智能体都使用策略梯度且学习率足够小，它们会收敛到纳什均衡。在什么条件下这个结论不成立？</p>
+<details>
+<summary>提示</summary>
+<p>考虑梯度动力学和不动点。</p>
+</details>
+<details>
+<summary>答案</summary>
+<p><strong>收敛到纳什均衡的条件</strong>：</p>
+<p>设两个智能体策略为$\pi_1, \pi_2$，零和游戏中：
+$$J_1(\pi_1, \pi_2) = -J_2(\pi_1, \pi_2)$$
+策略梯度更新：
+$$\pi_1^{t+1} = \pi_1^t + \alpha \nabla_{\pi_1} J_1(\pi_1^t, \pi_2^t)$$
+$$\pi_2^{t+1} = \pi_2^t + \alpha \nabla_{\pi_2} J_2(\pi_1^t, \pi_2^t)$$
+在纳什均衡$(\pi_1^*, \pi_2^*)$处，梯度为零：
+$$\nabla_{\pi_1} J_1(\pi_1^*, \pi_2^*) = 0, \quad \nabla_{\pi_2} J_2(\pi_1^*, \pi_2^*) = 0$$</p>
+<p><strong>收敛性分析</strong>：</p>
+<ul>
+<li>学习率足够小时，可用ODE近似离散更新</li>
+<li>零和游戏的梯度场具有保守性质</li>
+<li>Lyapunov函数存在，保证收敛</li>
+</ul>
+<p><strong>不成立的条件</strong>：</p>
+<ol>
+<li><strong>非零和游戏</strong>：可能有多个均衡，循环动力学</li>
+<li><strong>函数近似</strong>：神经网络引入近似误差</li>
+<li><strong>异步更新</strong>：破坏梯度场的保守性</li>
+<li><strong>探索噪声</strong>：持续的探索阻止精确收敛</li>
+</ol>
+<p>实践中常见的循环现象（如石头剪刀布）说明了这些理论限制。</p>
+</details>
+<p><strong>练习12.8</strong> 设计一个RL系统
+设计一个强化学习系统来优化大语言模型的推理能力。要求：</p>
+<ol>
+<li>定义状态、动作、奖励</li>
+<li>选择合适的RL算法并说明理由</li>
+<li>描述训练流程</li>
+<li>讨论潜在挑战和解决方案</li>
+</ol>
+<details>
+<summary>提示</summary>
+<p>参考RLHF的成功经验，但针对推理任务的特点进行调整。</p>
+</details>
+<details>
+<summary>答案</summary>
+<p><strong>系统设计：思维链强化学习（Chain-of-Thought RL）</strong></p>
+<p><strong>1. MDP定义</strong>：
+- 状态：$s_t = $ (问题, 已生成的推理步骤)
+- 动作：$a_t = $ 下一个推理步骤或最终答案
+- 奖励：</p>
+<div class="codehilite"><pre><span></span><code>r(s,a) = {
+  +1  如果最终答案正确
+  -0.01 * len(step)  长度惩罚
+  +0.1  如果推理步骤被验证器确认有效
+}
+</code></pre></div>
+
+<ol start="2">
+<li><strong>算法选择：PPO + 专家迭代</strong>
+- PPO：稳定性好，适合大规模语言模型
+- 专家迭代：用MCTS搜索更好的推理路径</li>
+</ol>
+<p><strong>3. 训练流程</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Phase 1: 监督学习</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">finetune_on_reasoning_datasets</span><span class="p">(</span><span class="n">base_model</span><span class="p">)</span>
+
+<span class="c1"># Phase 2: 自我对弈生成数据</span>
+<span class="k">for</span> <span class="n">problem</span> <span class="ow">in</span> <span class="n">training_problems</span><span class="p">:</span>
+    <span class="c1"># 使用MCTS搜索最佳推理路径</span>
+    <span class="n">reasoning_paths</span> <span class="o">=</span> <span class="n">mcts_search</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">problem</span><span class="p">,</span> <span class="n">n_simulations</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+    <span class="n">best_path</span> <span class="o">=</span> <span class="n">select_correct_path</span><span class="p">(</span><span class="n">reasoning_paths</span><span class="p">)</span>
+    <span class="n">dataset</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">best_path</span><span class="p">)</span>
+
+<span class="c1"># Phase 3: PPO微调</span>
+<span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_epochs</span><span class="p">):</span>
+    <span class="c1"># 采样问题</span>
+    <span class="n">problems</span> <span class="o">=</span> <span class="n">sample_problems</span><span class="p">()</span>
+
+    <span class="c1"># 生成推理</span>
+    <span class="n">trajectories</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate_reasoning</span><span class="p">(</span><span class="n">problems</span><span class="p">)</span>
+
+    <span class="c1"># 计算奖励（使用验证器或ground truth）</span>
+    <span class="n">rewards</span> <span class="o">=</span> <span class="n">compute_rewards</span><span class="p">(</span><span class="n">trajectories</span><span class="p">)</span>
+
+    <span class="c1"># PPO更新</span>
+    <span class="n">ppo_update</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">trajectories</span><span class="p">,</span> <span class="n">rewards</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>4. 挑战与解决方案</strong>：</p>
+<p>挑战1：推理步骤难以自动评估</p>
+<ul>
+<li>解决：训练独立的步骤验证器</li>
+<li>使用形式化验证（数学问题）</li>
+<li>人在回路的主动学习</li>
+</ul>
+<p>挑战2：探索空间巨大</p>
+<ul>
+<li>解决：课程学习，从简单到复杂</li>
+<li>使用提示工程引导探索</li>
+<li>保持推理多样性的熵正则化</li>
+</ul>
+<p>挑战3：奖励稀疏（只有最终答案有奖励）</p>
+<ul>
+<li>解决：中间奖励塑形</li>
+<li>使用思维链蒸馏的伪奖励</li>
+<li>价值函数初始化用SFT模型</li>
+</ul>
+<p>挑战4：灾难性遗忘</p>
+<ul>
+<li>解决：保持在原始模型的KL球内</li>
+<li>定期在一般任务上评估</li>
+<li>混合训练数据</li>
+</ul>
+<p><strong>评估指标</strong>：</p>
+<ul>
+<li>准确率提升</li>
+<li>推理步骤的可解释性</li>
+<li>泛化到新问题类型的能力</li>
+<li>推理效率（步骤数）</li>
+</ul>
+</details>
+            </article>
+            
+            <nav class="page-nav"><a href="chapter11.html" class="nav-link prev">← 第11章：扩散模型</a><a href="CLAUDE.html" class="nav-link next">Untitled →</a></nav>
+        </main>
+    </div>
+</body>
+</html>

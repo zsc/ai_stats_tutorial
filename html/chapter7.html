@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="./">
+    <title>第7章：循环神经网络与序列建模</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/highlight.css">
+    <script src="assets/script.js" defer></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: false,
+                packages: {'[+]': ['noerrors', 'ams']}
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            loader: {
+                load: ['[tex]/noerrors', '[tex]/ams']
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>目录</h3>
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            <div class="sidebar-search">
+                <input type="text" id="sidebar-search-input" placeholder="搜索..." autocomplete="off">
+            </div>
+            <div id="tree-container">
+                <nav class="tree-nav" role="tree">
+                    <div class="tree-item " >
+                        <a href="index.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">现代人工智能：优化与统计视角</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter1.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第1章：优化基础与梯度下降</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter2.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第2章：统计学习理论</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter3.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第3章：线性模型与正则化</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter4.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第4章：神经网络基础</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter5.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第5章：深度学习优化</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter6.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第6章：卷积神经网络</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item active" >
+                        <a href="chapter7.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第7章：循环神经网络与序列建模</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter8.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第8章：Transformer与注意力机制</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter9.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第9章：大语言模型</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter10.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第10章：变分自编码器与生成建模</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter11.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第11章：扩散模型</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter12.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第12章：深度强化学习</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="CLAUDE.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">Untitled</span>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+        </nav>
+        
+        <main class="content">
+            <article>
+                <h1 id="7">第7章：循环神经网络与序列建模</h1>
+<h2 id="_1">本章概览</h2>
+<p>序列数据无处不在——从自然语言到时间序列，从音频信号到用户行为轨迹。循环神经网络（RNN）通过引入"记忆"机制，使神经网络能够处理变长序列并捕获时间依赖关系。本章将从统计和优化的角度深入理解RNN的原理、挑战与解决方案，特别关注梯度传播问题、门控机制的设计动机，以及现代序列建模的实用技巧。</p>
+<p><strong>学习目标</strong>：</p>
+<ul>
+<li>理解RNN如何通过参数共享处理变长序列</li>
+<li>掌握BPTT算法及其梯度消失/爆炸问题</li>
+<li>深入理解LSTM和GRU的门控机制设计</li>
+<li>学会序列到序列模型的编码器-解码器架构</li>
+<li>掌握束搜索等实用解码策略</li>
+</ul>
+<h2 id="71-rnn">7.1 RNN的基本原理与统计动机</h2>
+<h3 id="711">7.1.1 序列建模的挑战</h3>
+<p>传统前馈网络假设输入是固定维度的向量，但现实中的序列数据具有以下特点：</p>
+<ol>
+<li><strong>变长性</strong>：句子长度不一，时间序列长度可变</li>
+<li><strong>时序依赖</strong>：当前输出依赖于历史信息</li>
+<li><strong>参数效率</strong>：需要共享参数来处理任意长度序列</li>
+</ol>
+<p>从统计学角度，序列建模本质上是学习条件概率分布：</p>
+<p>$$P(y_1, y_2, ..., y_T | x_1, x_2, ..., x_T) = \prod_{t=1}^T P(y_t | x_1, ..., x_t, y_1, ..., y_{t-1})$$</p>
+<h3 id="712-rnn">7.1.2 RNN的递归结构</h3>
+<p>RNN通过隐状态$\mathbf{h}_t$携带历史信息：
+$$\mathbf{h}_t = f(\mathbf{W}_{hh}\mathbf{h}_{t-1} + \mathbf{W}_{xh}\mathbf{x}_t + \mathbf{b}_h)$$
+$$\mathbf{y}_t = g(\mathbf{W}_{hy}\mathbf{h}_t + \mathbf{b}_y)$$
+其中：</p>
+<ul>
+<li>$\mathbf{h}_t \in \mathbb{R}^d$：隐状态向量</li>
+<li>$\mathbf{W}_{hh} \in \mathbb{R}^{d \times d}$：隐状态转移矩阵</li>
+<li>$\mathbf{W}_{xh} \in \mathbb{R}^{d \times n}$：输入到隐状态矩阵</li>
+<li>$f$：激活函数（通常为tanh或ReLU）</li>
+</ul>
+<p><strong>参数共享的优势</strong>：</p>
+<ul>
+<li>模型大小与序列长度无关</li>
+<li>可以处理任意长度的序列</li>
+<li>隐含了时间平移不变性假设</li>
+</ul>
+<h3 id="713">7.1.3 计算图展开视角</h3>
+<p>RNN可以看作深度网络在时间维度的展开：</p>
+<div class="codehilite"><pre><span></span><code>时间步：    t=1        t=2        t=3
+           ┌─┐        ┌─┐        ┌─┐
+输入：  x₁ →│h│→ h₁ →│h│→ h₂ →│h│→ h₃
+           └─┘        └─┘        └─┘
+            ↓          ↓          ↓
+输出：      y₁         y₂         y₃
+</code></pre></div>
+
+<p>这种展开视角揭示了RNN训练的核心挑战：梯度需要穿越很深的计算图。</p>
+<h2 id="72-bptt">7.2 BPTT与梯度问题</h2>
+<h3 id="721-bptt">7.2.1 时间反向传播（BPTT）</h3>
+<p>BPTT本质上是将展开的RNN视为深度网络，应用标准反向传播。给定损失函数$\mathcal{L} = \sum_{t=1}^T \mathcal{L}_t$，梯度计算涉及：
+$$\frac{\partial \mathcal{L}}{\partial \mathbf{W}_{hh}} = \sum_{t=1}^T \frac{\partial \mathcal{L}_t}{\partial \mathbf{W}_{hh}}$$
+关键在于计算$\frac{\partial \mathcal{L}_t}{\partial \mathbf{h}_k}$（$k &lt; t$）时需要通过链式法则：
+$$\frac{\partial \mathcal{L}_t}{\partial \mathbf{h}_k} = \frac{\partial \mathcal{L}_t}{\partial \mathbf{h}_t} \prod_{i=k}^{t-1} \frac{\partial \mathbf{h}_{i+1}}{\partial \mathbf{h}_i}$$</p>
+<h3 id="722">7.2.2 梯度消失与爆炸</h3>
+<p>梯度传播涉及矩阵连乘：
+$$\prod_{i=k}^{t-1} \frac{\partial \mathbf{h}_{i+1}}{\partial \mathbf{h}_i} = \prod_{i=k}^{t-1} \mathbf{W}_{hh}^T \text{diag}(f'(\mathbf{h}_i))$$
+设$\mathbf{W}_{hh}$的最大特征值为$\lambda_{max}$：</p>
+<ul>
+<li><strong>梯度爆炸</strong>：当$\lambda_{max} &gt; 1$时，梯度指数增长</li>
+<li><strong>梯度消失</strong>：当$\lambda_{max} &lt; 1$时，梯度指数衰减</li>
+</ul>
+<p><strong>实用判断法则</strong>：</p>
+<ul>
+<li>如果训练时梯度范数突然增大（&gt;100），考虑梯度爆炸</li>
+<li>如果深层梯度范数远小于浅层（&lt;0.001），考虑梯度消失</li>
+</ul>
+<h3 id="723">7.2.3 缓解策略</h3>
+<p><strong>梯度裁剪（Gradient Clipping）</strong>：</p>
+<div class="codehilite"><pre><span></span><code>if ||∇θ|| &gt; threshold:
+    ∇θ = (threshold / ||∇θ||) * ∇θ
+</code></pre></div>
+
+<p>经验法则：threshold通常设为5-10</p>
+<p><strong>正交初始化</strong>：
+初始化$\mathbf{W}_{hh}$为正交矩阵，使特征值为1，延缓梯度问题的出现。</p>
+<p><strong>截断BPTT（Truncated BPTT）</strong>：
+只反向传播固定步数（如20-35步），牺牲长期依赖换取稳定性。</p>
+<h2 id="73-lstmgru">7.3 LSTM与GRU：门控机制</h2>
+<h3 id="731-lstm">7.3.1 LSTM的设计哲学</h3>
+<p>长短期记忆网络（LSTM）通过引入"高速公路"解决梯度传播问题：</p>
+<p><strong>核心创新</strong>：分离细胞状态$\mathbf{c}_t$和隐状态$\mathbf{h}_t$
+$$\begin{align}
+\mathbf{f}_t &amp;= \sigma(\mathbf{W}_f[\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_f) \quad \text{(遗忘门)} \\
+\mathbf{i}_t &amp;= \sigma(\mathbf{W}_i[\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_i) \quad \text{(输入门)} \\
+\tilde{\mathbf{c}}_t &amp;= \tanh(\mathbf{W}_c[\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_c) \quad \text{(候选值)} \\
+\mathbf{c}_t &amp;= \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t \\
+\mathbf{o}_t &amp;= \sigma(\mathbf{W}_o[\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_o) \quad \text{(输出门)} \\
+\mathbf{h}_t &amp;= \mathbf{o}_t \odot \tanh(\mathbf{c}_t)
+\end{align}$$
+<strong>梯度流分析</strong>：
+细胞状态的更新是线性的（加法），梯度可以直接流过：
+$$\frac{\partial \mathbf{c}_t}{\partial \mathbf{c}_{t-1}} = \mathbf{f}_t$$
+当遗忘门接近1时，梯度几乎无损传播。</p>
+<h3 id="732-gru">7.3.2 GRU：简化的门控机制</h3>
+<p>门控循环单元（GRU）简化了LSTM，合并了细胞状态和隐状态：
+$$\begin{align}
+\mathbf{z}_t &amp;= \sigma(\mathbf{W}_z[\mathbf{h}_{t-1}, \mathbf{x}_t]) \quad \text{(更新门)} \\
+\mathbf{r}_t &amp;= \sigma(\mathbf{W}_r[\mathbf{h}_{t-1}, \mathbf{x}_t]) \quad \text{(重置门)} \\
+\tilde{\mathbf{h}}_t &amp;= \tanh(\mathbf{W}_h[\mathbf{r}_t \odot \mathbf{h}_{t-1}, \mathbf{x}_t]) \\
+\mathbf{h}_t &amp;= (1-\mathbf{z}_t) \odot \mathbf{h}_{t-1} + \mathbf{z}_t \odot \tilde{\mathbf{h}}_t
+\end{align}$$
+<strong>LSTM vs GRU经验法则</strong>：</p>
+<ul>
+<li>LSTM：更强的建模能力，适合大数据集</li>
+<li>GRU：参数更少（约LSTM的75%），训练更快，小数据集表现更好</li>
+<li>性能差异通常&lt;2%，优先选择GRU除非有充分理由</li>
+</ul>
+<h3 id="733">7.3.3 门控机制的统计解释</h3>
+<p>从贝叶斯角度，门控机制可以理解为学习何时更新先验（历史信息）：</p>
+<ul>
+<li><strong>遗忘门</strong>：决定保留多少先验信息</li>
+<li><strong>输入门</strong>：决定接受多少新证据</li>
+<li><strong>输出门</strong>：决定暴露多少后验信息</li>
+</ul>
+<p>这种机制使模型能够自适应地调节信息流，对不同时间尺度的依赖关系建模。</p>
+<h2 id="74">7.4 序列到序列模型</h2>
+<h3 id="741-">7.4.1 编码器-解码器架构</h3>
+<p>序列到序列（Seq2Seq）模型解决输入输出长度不一致的问题，典型应用包括机器翻译、文本摘要等。</p>
+<p><strong>基本架构</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">编码器</span><span class="w">                     </span><span class="n">解码器</span>
+<span class="n">x₁</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="o">[</span><span class="n">RNN</span><span class="o">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">h₁</span><span class="w">           </span><span class="o">[</span><span class="n">RNN</span><span class="o">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">y₁</span>
+<span class="n">x₂</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="o">[</span><span class="n">RNN</span><span class="o">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">h₂</span><span class="w">           </span><span class="o">[</span><span class="n">RNN</span><span class="o">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">y₂</span>
+<span class="n">x₃</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="o">[</span><span class="n">RNN</span><span class="o">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">h₃</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="err">→</span><span class="w">     </span><span class="o">[</span><span class="n">RNN</span><span class="o">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">y₃</span>
+<span class="w">                          </span><span class="o">[</span><span class="n">RNN</span><span class="o">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="o">&lt;</span><span class="n">EOS</span><span class="o">&gt;</span>
+</code></pre></div>
+
+<p><strong>编码器</strong>：将变长输入压缩为固定维度上下文向量$\mathbf{c}$
+$$\mathbf{c} = f_{enc}(x_1, x_2, ..., x_T)$$
+通常取最后一个隐状态：$\mathbf{c} = \mathbf{h}_T$</p>
+<p><strong>解码器</strong>：基于上下文向量生成输出序列
+$$P(y_1, ..., y_{T'}) = \prod_{t=1}^{T'} P(y_t | y_{&lt;t}, \mathbf{c})$$</p>
+<h3 id="742-teacher-forcing">7.4.2 训练策略：Teacher Forcing</h3>
+<p><strong>Teacher Forcing</strong>：训练时使用真实目标作为解码器输入</p>
+<ul>
+<li>优点：加速收敛，梯度稳定</li>
+<li>缺点：训练和推理不一致（exposure bias）</li>
+</ul>
+<p><strong>Scheduled Sampling</strong>：随训练进程逐渐减少teacher forcing概率
+$$p_{tf} = \max(0.5, 1 - \frac{epoch}{total_epochs})$$</p>
+<h3 id="743">7.4.3 注意力机制的早期形式</h3>
+<p>原始Seq2Seq的瓶颈：所有信息压缩到单一向量$\mathbf{c}$</p>
+<p><strong>Bahdanau注意力</strong>（2014）：解码每个词时动态关注编码器不同位置
+$$\mathbf{c}_t = \sum_{i=1}^T \alpha_{ti} \mathbf{h}_i$$
+其中注意力权重通过可学习的对齐模型计算：
+$$\alpha_{ti} = \frac{\exp(e_{ti})}{\sum_{j=1}^T \exp(e_{tj})}$$
+$$e_{ti} = v^T \tanh(\mathbf{W}_a[\mathbf{s}_{t-1}, \mathbf{h}_i])$$
+<strong>性能提升</strong>：在机器翻译任务上，注意力机制将BLEU分数提升5-10个点。</p>
+<h2 id="75">7.5 束搜索与解码策略</h2>
+<h3 id="751">7.5.1 贪婪解码的局限</h3>
+<p>贪婪解码每步选择概率最高的词：
+$$y_t = \arg\max_{w} P(w | y_{&lt;t}, \mathbf{c})$$
+<strong>问题</strong>：局部最优不等于全局最优</p>
+<p>示例：</p>
+<div class="codehilite"><pre><span></span><code>&quot;我喜欢&quot; → 
+  贪婪：&quot;吃饭&quot;（P=0.6）→ &quot;在家&quot;（P=0.3）→ 总概率=0.18
+  最优：&quot;在&quot;（P=0.4）→ &quot;家吃饭&quot;（P=0.9）→ 总概率=0.36
+</code></pre></div>
+
+<h3 id="752-beam-search">7.5.2 束搜索（Beam Search）</h3>
+<p>保留top-k个候选序列，平衡搜索质量和计算效率：</p>
+<p><strong>算法流程</strong>：</p>
+<ol>
+<li>初始化：beam = [<START>]</li>
+<li>每个时间步：
+   - 对beam中每个序列，生成所有可能的下一个词
+   - 计算所有候选的累积对数概率
+   - 保留top-k个候选作为新beam</li>
+<li>直到所有序列生成<EOS>或达到最大长度</li>
+</ol>
+<p><strong>束宽选择经验法则</strong>：</p>
+<ul>
+<li>机器翻译：k=4-8</li>
+<li>文本生成：k=10-20</li>
+<li>实时系统：k=2-3</li>
+</ul>
+<h3 id="753">7.5.3 长度归一化与覆盖惩罚</h3>
+<p><strong>长度归一化</strong>：避免偏好短序列
+$$\text{score}(y) = \frac{1}{|y|^\alpha} \sum_{t=1}^{|y|} \log P(y_t | y_{&lt;t})$$
+其中$\alpha \in [0.6, 0.8]$是长度惩罚因子。</p>
+<p><strong>覆盖惩罚</strong>：避免重复（特别是在摘要任务）
+$$\text{coverage}_t = \sum_{i=1}^t \alpha_{ti}$$
+$$\text{penalty} = \beta \sum_i \min(\text{coverage}_i, 1.0)$$</p>
+<h3 id="754">7.5.4 多样性增强策略</h3>
+<p><strong>Top-k采样</strong>：从概率最高的k个词中随机采样</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 伪代码</span>
+<span class="n">probs</span> <span class="o">=</span> <span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
+<span class="n">top_k_probs</span><span class="p">,</span> <span class="n">top_k_indices</span> <span class="o">=</span> <span class="n">top_k</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+<span class="n">sampled_index</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">top_k_indices</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">top_k_probs</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>Top-p（Nucleus）采样</strong>：选择累积概率达到p的最小词集</p>
+<ul>
+<li>p=0.9：保留90%概率质量的词</li>
+<li>动态调整候选集大小，更灵活</li>
+</ul>
+<p><strong>温度调节</strong>：
+$$P(w) = \frac{\exp(z_w/T)}{\sum_{w'} \exp(z_{w'}/T)}$$</p>
+<ul>
+<li>T&lt;1：分布更尖锐，更确定</li>
+<li>T&gt;1：分布更平坦，更随机</li>
+<li>经验值：创意写作T=0.8-1.2，事实性回答T=0.3-0.7</li>
+</ul>
+<h2 id="76-lstm">7.6 历史人物：赛普·霍克赖特与LSTM的诞生</h2>
+<h3 id="761">7.6.1 问题的发现</h3>
+<p>1991年，霍克赖特（Sepp Hochreiter）还是慕尼黑工业大学的硕士生。他在论文中首次系统分析了RNN的梯度消失问题，这一发现领先业界认识近十年。</p>
+<p><strong>关键洞察</strong>：</p>
+<ul>
+<li>证明了梯度衰减是指数级的</li>
+<li>提出了"constant error carousel"概念</li>
+<li>设计了保持梯度流动的机制</li>
+</ul>
+<h3 id="762-lstm">7.6.2 LSTM的演进</h3>
+<p>1997年，霍克赖特与导师施密德胡贝（Jürgen Schmidhuber）正式发表LSTM：</p>
+<p><strong>原始LSTM</strong>（1997）：</p>
+<ul>
+<li>只有输入门和输出门</li>
+<li>没有遗忘门（后于1999年添加）</li>
+<li>没有peephole连接（2002年添加）</li>
+</ul>
+<p><strong>影响力</strong>：</p>
+<ul>
+<li>2007年开始在语音识别取得突破</li>
+<li>2014年用于Google语音搜索，错误率降低49%</li>
+<li>2016年Google翻译全面采用LSTM</li>
+</ul>
+<h3 id="763">7.6.3 理论贡献</h3>
+<p>霍克赖特的贡献不仅是LSTM本身，更重要的是：</p>
+<ol>
+<li><strong>梯度流理论</strong>：建立了分析深度时序模型的理论框架</li>
+<li><strong>记忆机制设计</strong>：启发了后续注意力机制、记忆网络等</li>
+<li><strong>长期依赖建模</strong>：证明了神经网络可以学习长距离依赖</li>
+</ol>
+<p><strong>一个有趣的事实</strong>：LSTM论文最初被多个会议拒稿，审稿人认为"过于复杂"。</p>
+<h2 id="77-rnn">7.7 现代连接：RNN在扩散模型中的应用</h2>
+<h3 id="771">7.7.1 时间条件编码</h3>
+<p>虽然Transformer已经主导序列建模，但RNN在某些场景仍有独特优势：</p>
+<p><strong>扩散模型中的时间编码</strong>：</p>
+<div class="codehilite"><pre><span></span><code>噪声水平 t → [RNN/LSTM] → 时间嵌入 → 条件特征
+</code></pre></div>
+
+<p>为什么用RNN而非简单的正弦编码？</p>
+<ul>
+<li>RNN可以学习非线性时间动态</li>
+<li>对不规则采样时间更鲁棒</li>
+<li>参数量小，不影响主网络</li>
+</ul>
+<h3 id="772-odernn">7.7.2 神经ODE与连续时间RNN</h3>
+<p><strong>Neural ODE</strong>将RNN推广到连续时间：
+$$\frac{d\mathbf{h}(t)}{dt} = f_\theta(\mathbf{h}(t), t)$$
+优势：</p>
+<ul>
+<li>内存效率：不需要存储中间状态</li>
+<li>自适应计算：根据复杂度调整步长</li>
+<li>理论优雅：与物理系统建模统一</li>
+</ul>
+<p>应用场景：</p>
+<ul>
+<li>不规则采样的时间序列（医疗数据）</li>
+<li>物理系统建模</li>
+<li>连续控制任务</li>
+</ul>
+<h3 id="773">7.7.3 状态空间模型的复兴</h3>
+<p><strong>Structured State Space Models (S4)</strong>：结合RNN的递归性和CNN的并行性</p>
+<p>核心思想：将RNN表示为线性状态空间：
+$$\mathbf{h}_t = \mathbf{A}\mathbf{h}_{t-1} + \mathbf{B}\mathbf{x}_t$$
+$$\mathbf{y}_t = \mathbf{C}\mathbf{h}_t + \mathbf{D}\mathbf{x}_t$$
+通过特殊的矩阵结构（HiPPO矩阵），实现：</p>
+<ul>
+<li>训练时并行（通过FFT）</li>
+<li>推理时递归（内存效率）</li>
+<li>建模超长序列（&gt;10k tokens）</li>
+</ul>
+<h3 id="774-rnn">7.7.4 RNN作为正则化工具</h3>
+<p>在大模型时代，小型RNN用作正则化组件：</p>
+<p><strong>示例：Transformer中的递归偏置</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 伪代码</span>
+<span class="n">attention_output</span> <span class="o">=</span> <span class="n">MultiHeadAttention</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">rnn_bias</span> <span class="o">=</span> <span class="n">SmallLSTM</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># 仅64-128维</span>
+<span class="n">output</span> <span class="o">=</span> <span class="n">attention_output</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">rnn_bias</span>
+</code></pre></div>
+
+<p>效果：</p>
+<ul>
+<li>提升长文档理解（+2-3% F1）</li>
+<li>改善位置泛化</li>
+<li>计算开销&lt;5%</li>
+</ul>
+<h2 id="_2">本章小结</h2>
+<p>本章深入探讨了循环神经网络的理论基础与实践技巧：</p>
+<h3 id="_3">核心概念</h3>
+<ol>
+<li><strong>RNN基础</strong>：通过参数共享和递归结构处理变长序列</li>
+<li><strong>梯度问题</strong>：BPTT中的梯度消失/爆炸及其数学原理</li>
+<li><strong>门控机制</strong>：LSTM/GRU通过门控解决长期依赖问题</li>
+<li><strong>Seq2Seq架构</strong>：编码器-解码器框架处理序列转换任务</li>
+<li><strong>解码策略</strong>：束搜索、采样方法等实用技巧</li>
+</ol>
+<h3 id="_4">关键公式回顾</h3>
+<p><strong>RNN更新方程</strong>：
+$$\mathbf{h}_t = f(\mathbf{W}_{hh}\mathbf{h}_{t-1} + \mathbf{W}_{xh}\mathbf{x}_t + \mathbf{b})$$
+<strong>LSTM细胞状态更新</strong>：
+$$\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t$$
+<strong>GRU隐状态更新</strong>：
+$$\mathbf{h}_t = (1-\mathbf{z}_t) \odot \mathbf{h}_{t-1} + \mathbf{z}_t \odot \tilde{\mathbf{h}}_t$$
+<strong>注意力权重计算</strong>：
+$$\alpha_{ti} = \text{softmax}(e_{ti}) = \frac{\exp(e_{ti})}{\sum_j \exp(e_{tj})}$$</p>
+<h3 id="_5">实用经验法则</h3>
+<ul>
+<li><strong>梯度裁剪阈值</strong>：5-10</li>
+<li><strong>LSTM vs GRU</strong>：小数据用GRU，大数据考虑LSTM</li>
+<li><strong>束搜索宽度</strong>：翻译4-8，生成10-20</li>
+<li><strong>采样温度</strong>：事实性0.3-0.7，创意性0.8-1.2</li>
+<li><strong>序列长度</strong>：标准RNN&lt;100步，LSTM/GRU可达500步</li>
+</ul>
+<h3 id="_6">与现代架构的联系</h3>
+<p>虽然Transformer已成为主流，但RNN的核心思想仍在演进：</p>
+<ul>
+<li>状态空间模型（S4）实现并行训练和递归推理</li>
+<li>Neural ODE提供连续时间建模</li>
+<li>小型RNN作为大模型的辅助组件</li>
+<li>时间条件编码在扩散模型中的应用</li>
+</ul>
+<h2 id="_7">常见陷阱与错误</h2>
+<h3 id="1">1. 梯度问题处理不当</h3>
+<p><strong>错误</strong>：忽视梯度裁剪，导致训练不稳定</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 错误：直接更新</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+<span class="c1"># 正确：先裁剪梯度</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">max_norm</span><span class="o">=</span><span class="mf">5.0</span><span class="p">)</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</code></pre></div>
+
+<h3 id="2">2. 隐状态初始化错误</h3>
+<p><strong>错误</strong>：使用全零初始化</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 错误：可能导致对称性问题</span>
+<span class="n">h0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">)</span>
+
+<span class="c1"># 正确：使用小随机值或学习初始状态</span>
+<span class="n">h0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.01</span>
+</code></pre></div>
+
+<h3 id="3">3. 批处理时忽略序列长度</h3>
+<p><strong>错误</strong>：对不同长度序列使用相同的隐状态</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 错误：填充位置也参与计算</span>
+<span class="n">output</span> <span class="o">=</span> <span class="n">rnn</span><span class="p">(</span><span class="n">padded_input</span><span class="p">)</span>
+
+<span class="c1"># 正确：使用pack_padded_sequence</span>
+<span class="n">packed</span> <span class="o">=</span> <span class="n">pack_padded_sequence</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">lengths</span><span class="p">)</span>
+<span class="n">output</span><span class="p">,</span> <span class="n">hidden</span> <span class="o">=</span> <span class="n">rnn</span><span class="p">(</span><span class="n">packed</span><span class="p">)</span>
+</code></pre></div>
+
+<h3 id="4-teacher-forcing">4. Teacher Forcing依赖过度</h3>
+<p><strong>症状</strong>：训练loss很低，但推理效果差
+<strong>解决</strong>：使用scheduled sampling，逐渐减少teacher forcing</p>
+<h3 id="5-lstmgru">5. LSTM/GRU门控值诊断</h3>
+<p><strong>调试技巧</strong>：监控门控值分布</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 如果遗忘门总是接近0或1，可能有问题</span>
+<span class="n">forget_gate_mean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">forget_gate</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="k">if</span> <span class="n">forget_gate_mean</span> <span class="o">&lt;</span> <span class="mf">0.1</span> <span class="ow">or</span> <span class="n">forget_gate_mean</span> <span class="o">&gt;</span> <span class="mf">0.9</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning: 遗忘门可能饱和&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<h3 id="6">6. 序列过长导致的问题</h3>
+<p><strong>症状</strong>：长序列训练极慢或内存溢出
+<strong>解决方案</strong>：</p>
+<ul>
+<li>使用truncated BPTT（每20-50步截断）</li>
+<li>考虑使用Transformer或分层RNN</li>
+<li>序列分块处理</li>
+</ul>
+<h3 id="7_1">7. 解码策略选择不当</h3>
+<p><strong>错误</strong>：所有任务都用贪婪解码
+<strong>正确做法</strong>：</p>
+<ul>
+<li>翻译：束搜索(k=4-8)</li>
+<li>对话：top-p采样(p=0.9)</li>
+<li>摘要：束搜索+覆盖惩罚</li>
+</ul>
+<h3 id="8">8. 忽视双向信息</h3>
+<p><strong>场景</strong>：非实时任务却只用单向RNN</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 更好：使用双向RNN获取完整上下文</span>
+<span class="n">bidirectional_lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+
+<h2 id="_8">练习题</h2>
+<h3 id="71">练习 7.1：梯度消失分析（基础）</h3>
+<p>考虑一个3层的简单RNN，激活函数为tanh，权重矩阵$\mathbf{W}_{hh}$的最大特征值为0.9。计算梯度经过10个时间步后的衰减比例。</p>
+<p><strong>提示</strong>：考虑tanh导数的最大值是1，梯度衰减主要由权重矩阵特征值决定。</p>
+<details>
+<summary>答案</summary>
+<p>梯度衰减比例约为：
+$$\text{衰减} \approx \lambda_{max}^{10} = 0.9^{10} \approx 0.349$$
+这意味着梯度衰减到原来的35%左右。实际中由于tanh导数小于1（在饱和区接近0），衰减会更严重。这解释了为什么标准RNN难以学习超过10-20步的依赖关系。</p>
+</details>
+<h3 id="72lstm">练习 7.2：LSTM门控机制理解（基础）</h3>
+<p>LSTM的遗忘门输出为0.2，输入门输出为0.8，前一时刻细胞状态$c_{t-1}=1.5$，新候选值$\tilde{c}_t=0.5$。计算当前细胞状态$c_t$。</p>
+<p><strong>提示</strong>：使用LSTM细胞状态更新公式。</p>
+<details>
+<summary>答案</summary>
+<p>$$c_t = f_t \cdot c_{t-1} + i_t \cdot \tilde{c}_t = 0.2 \times 1.5 + 0.8 \times 0.5 = 0.3 + 0.4 = 0.7$$
+这个例子展示了LSTM如何通过门控机制控制信息流：遗忘门较小（0.2）意味着大部分历史信息被遗忘，而输入门较大（0.8）意味着新信息被大量接收。</p>
+</details>
+<h3 id="73">练习 7.3：序列概率计算（基础）</h3>
+<p>给定一个训练好的语言模型，词表大小为10000，生成序列"我 喜欢 学习"的概率分别为：P(我|<START>)=0.1, P(喜欢|我)=0.05, P(学习|我,喜欢)=0.2。计算整个序列的对数概率。</p>
+<p><strong>提示</strong>：使用链式法则和对数概率避免数值下溢。</p>
+<details>
+<summary>答案</summary>
+<p>$$\begin{align}
+\log P(\text{序列}) &amp;= \log P(\text{我}|&lt;\text{START}&gt;) + \log P(\text{喜欢}|\text{我}) + \log P(\text{学习}|\text{我,喜欢}) \\
+&amp;= \log(0.1) + \log(0.05) + \log(0.2) \\
+&amp;= -2.303 + (-2.996) + (-1.609) \\
+&amp;= -6.908
+\end{align}$$
+对数概率约为-6.91，对应概率约为0.001。这展示了为什么NLP任务中普遍使用对数概率：避免连乘导致的数值下溢。</p>
+</details>
+<h3 id="74_1">练习 7.4：束搜索优化（挑战）</h3>
+<p>设计一个改进的束搜索算法，要求：(1)避免生成重复的n-gram，(2)确保生成序列的多样性。描述你的算法并分析计算复杂度。</p>
+<p><strong>提示</strong>：考虑维护已生成n-gram的集合，以及如何在beam内部增加多样性。</p>
+<details>
+<summary>答案</summary>
+<p><strong>改进算法</strong>：</p>
+<ol>
+<li>
+<p><strong>n-gram去重</strong>：
+   - 维护集合记录已生成的n-gram（n=3或4）
+   - 生成新词时，检查是否形成重复n-gram
+   - 若重复，将该候选的分数乘以惩罚系数（如0.5）</p>
+</li>
+<li>
+<p><strong>多样性束搜索（Diverse Beam Search）</strong>：
+   - 将beam分成G组，每组大小为k/G
+   - 第i组选择候选时，对与前i-1组重复的候选施加惩罚
+   - 惩罚函数：$\text{penalty} = \lambda \cdot \max_j \text{sim}(h_i, h_j)$</p>
+</li>
+<li>
+<p><strong>实现细节</strong>：</p>
+</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 伪代码</span>
+<span class="n">seen_ngrams</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+<span class="n">groups</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_groups</span><span class="p">)]</span>
+
+<span class="k">for</span> <span class="n">group_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_groups</span><span class="p">):</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="n">generate_candidates</span><span class="p">(</span><span class="n">groups</span><span class="p">[</span><span class="n">group_id</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
+        <span class="c1"># n-gram检查</span>
+        <span class="n">ngram</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">candidate</span><span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">:])</span>
+        <span class="k">if</span> <span class="n">ngram</span> <span class="ow">in</span> <span class="n">seen_ngrams</span><span class="p">:</span>
+            <span class="n">candidate</span><span class="o">.</span><span class="n">score</span> <span class="o">*=</span> <span class="n">repeat_penalty</span>
+
+        <span class="c1"># 多样性惩罚</span>
+        <span class="k">for</span> <span class="n">prev_group</span> <span class="ow">in</span> <span class="n">groups</span><span class="p">[:</span><span class="n">group_id</span><span class="p">]:</span>
+            <span class="n">similarity</span> <span class="o">=</span> <span class="n">compute_similarity</span><span class="p">(</span><span class="n">candidate</span><span class="p">,</span> <span class="n">prev_group</span><span class="p">)</span>
+            <span class="n">candidate</span><span class="o">.</span><span class="n">score</span> <span class="o">-=</span> <span class="n">diversity_penalty</span> <span class="o">*</span> <span class="n">similarity</span>
+
+    <span class="n">groups</span><span class="p">[</span><span class="n">group_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">top_k</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">k</span><span class="o">//</span><span class="n">num_groups</span><span class="p">)</span>
+    <span class="n">update_seen_ngrams</span><span class="p">(</span><span class="n">groups</span><span class="p">[</span><span class="n">group_id</span><span class="p">])</span>
+</code></pre></div>
+
+<p><strong>复杂度分析</strong>：</p>
+<ul>
+<li>时间：O(k × V × G)，其中V是词表大小，G是组数</li>
+<li>空间：O(k × L + N)，L是序列长度，N是n-gram集合大小</li>
+<li>相比标准束搜索，增加了O(G)的多样性计算开销</li>
+</ul>
+</details>
+<h3 id="75grulstm">练习 7.5：GRU与LSTM的等价性（挑战）</h3>
+<p>证明：在某些参数设置下，GRU可以模拟LSTM的行为。具体说明需要什么条件。</p>
+<p><strong>提示</strong>：考虑GRU的更新门和重置门如何对应LSTM的门控机制。</p>
+<details>
+<summary>答案</summary>
+<p><strong>等价性条件</strong>：</p>
+<p>当GRU满足以下条件时，可以近似模拟LSTM：</p>
+<ol>
+<li>
+<p><strong>更新门$z_t$对应输入门</strong>：
+   - GRU: $h_t = (1-z_t) \cdot h_{t-1} + z_t \cdot \tilde{h}_t$
+   - 当$z_t$较小时，保留更多历史信息（类似LSTM遗忘门接近1）</p>
+</li>
+<li>
+<p><strong>重置门$r_t$对应遗忘门的补</strong>：
+   - 当$r_t \approx 0$时，忽略历史信息（类似LSTM遗忘门接近0）
+   - 当$r_t \approx 1$时，充分利用历史信息</p>
+</li>
+<li>
+<p><strong>关键差异</strong>：
+   - LSTM有独立的细胞状态，GRU没有
+   - LSTM输出门控制暴露多少信息，GRU直接输出隐状态
+   - GRU无法完全模拟LSTM的输出门机制</p>
+</li>
+</ol>
+<p><strong>数学关系</strong>：
+设LSTM遗忘门$f_t$，输入门$i_t$，则GRU可以通过以下映射近似：</p>
+<ul>
+<li>$z_t \approx i_t$（更新门≈输入门）</li>
+<li>$1-z_t \approx f_t$（保留比例≈遗忘门）</li>
+<li>$r_t$用于控制候选值计算</li>
+</ul>
+<p><strong>结论</strong>：GRU可以近似LSTM的遗忘和输入机制，但无法完全复制输出门功能。这解释了为什么两者性能通常相近，但在需要精细输出控制的任务上LSTM可能更优。</p>
+</details>
+<h3 id="76">练习 7.6：梯度裁剪的最优阈值（挑战）</h3>
+<p>给定一个RNN训练任务，梯度范数的历史统计显示：均值为2.5，标准差为3.0，偶尔出现范数&gt;100的爆炸。设计一个自适应梯度裁剪策略。</p>
+<p><strong>提示</strong>：考虑使用移动平均和标准差来动态调整阈值。</p>
+<details>
+<summary>答案</summary>
+<p><strong>自适应梯度裁剪策略</strong>：</p>
+<ol>
+<li><strong>基于统计的动态阈值</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">AdaptiveGradientClipper</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">percentile</span><span class="o">=</span><span class="mi">98</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grad_history</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window_size</span> <span class="o">=</span> <span class="n">window_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">percentile</span> <span class="o">=</span> <span class="n">percentile</span>
+
+    <span class="k">def</span> <span class="nf">compute_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grad_history</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">10.0</span>  <span class="c1"># 默认值</span>
+
+        <span class="c1"># 使用移动窗口</span>
+        <span class="n">recent_grads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grad_history</span><span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">window_size</span><span class="p">:]</span>
+
+        <span class="c1"># 计算统计量</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">recent_grads</span><span class="p">)</span>
+        <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">recent_grads</span><span class="p">)</span>
+
+        <span class="c1"># 自适应阈值：均值 + k倍标准差</span>
+        <span class="c1"># k根据分布的偏度调整</span>
+        <span class="n">skewness</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">skew</span><span class="p">(</span><span class="n">recent_grads</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="mf">3.0</span> <span class="k">if</span> <span class="n">skewness</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="mf">4.0</span>
+
+        <span class="n">threshold</span> <span class="o">=</span> <span class="n">mean</span> <span class="o">+</span> <span class="n">k</span> <span class="o">*</span> <span class="n">std</span>
+
+        <span class="c1"># 设置上下界</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">threshold</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">50.0</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">clip_and_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grad_norm</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grad_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">grad_norm</span><span class="p">)</span>
+        <span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_threshold</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">grad_norm</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">threshold</span> <span class="o">/</span> <span class="n">grad_norm</span>
+        <span class="k">return</span> <span class="mf">1.0</span>
+</code></pre></div>
+
+<ol start="2">
+<li>
+<p><strong>渐进式策略</strong>：
+- 训练初期：使用较小阈值（5.0）保证稳定
+- 中期：基于历史98百分位数
+- 后期：逐渐放松到均值+4σ</p>
+</li>
+<li>
+<p><strong>针对本题数据</strong>：
+- 均值2.5，标准差3.0
+- 初始阈值：2.5 + 3×3.0 = 11.5
+- 检测到爆炸（&gt;100）时，临时降低到5.0
+- 正常训练时逐渐恢复到11.5</p>
+</li>
+</ol>
+<p><strong>优势</strong>：</p>
+<ul>
+<li>自动适应不同任务和模型</li>
+<li>避免过度裁剪影响收敛</li>
+<li>及时处理梯度爆炸</li>
+</ul>
+</details>
+<h3 id="77rnn">练习 7.7：设计记忆增强RNN（开放）</h3>
+<p>设计一个结合外部记忆的RNN架构，用于需要精确记忆的任务（如复制任务、算法推理）。说明架构设计和训练策略。</p>
+<p><strong>提示</strong>：参考Neural Turing Machine或Differentiable Neural Computer的思想。</p>
+<details>
+<summary>答案</summary>
+<p><strong>记忆增强RNN架构设计</strong>：</p>
+<ol>
+<li><strong>核心组件</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="n">输入</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="o">[</span><span class="n">LSTM控制器</span><span class="o">]</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">读写头</span>
+<span class="w">           </span><span class="err">↓</span>
+<span class="w">      </span><span class="o">[</span><span class="n">外部记忆矩阵</span><span class="o">]</span>
+<span class="w">           </span><span class="err">↓</span>
+<span class="w">         </span><span class="n">输出</span>
+</code></pre></div>
+
+<ol start="2">
+<li>
+<p><strong>记忆矩阵</strong>：
+- 大小：M × N（M个槽位，每个N维）
+- 内容：$\mathbf{M}_t \in \mathbb{R}^{M \times N}$</p>
+</li>
+<li>
+<p><strong>读写机制</strong>：</p>
+</li>
+</ol>
+<p><strong>写操作</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 注意力权重（基于内容或位置）</span>
+<span class="n">w_write</span> <span class="o">=</span> <span class="n">softmax</span><span class="p">(</span><span class="n">controller_output</span> <span class="o">@</span> <span class="n">memory</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+<span class="c1"># 擦除向量和添加向量</span>
+<span class="n">erase</span> <span class="o">=</span> <span class="n">sigmoid</span><span class="p">(</span><span class="n">W_e</span> <span class="o">@</span> <span class="n">controller_state</span><span class="p">)</span>
+<span class="n">add</span> <span class="o">=</span> <span class="n">tanh</span><span class="p">(</span><span class="n">W_a</span> <span class="o">@</span> <span class="n">controller_state</span><span class="p">)</span>
+
+<span class="c1"># 更新记忆</span>
+<span class="n">memory</span> <span class="o">=</span> <span class="n">memory</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">w_write</span> <span class="o">@</span> <span class="n">erase</span><span class="p">)</span> <span class="o">+</span> <span class="n">w_write</span> <span class="o">@</span> <span class="n">add</span>
+</code></pre></div>
+
+<p><strong>读操作</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 读权重</span>
+<span class="n">w_read</span> <span class="o">=</span> <span class="n">softmax</span><span class="p">(</span><span class="n">query</span> <span class="o">@</span> <span class="n">memory</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+<span class="c1"># 读取内容</span>
+<span class="n">read_vector</span> <span class="o">=</span> <span class="n">w_read</span> <span class="o">@</span> <span class="n">memory</span>
+
+<span class="c1"># 与控制器状态结合</span>
+<span class="n">output</span> <span class="o">=</span> <span class="n">tanh</span><span class="p">(</span><span class="n">W_o</span> <span class="o">@</span> <span class="n">concat</span><span class="p">([</span><span class="n">controller_state</span><span class="p">,</span> <span class="n">read_vector</span><span class="p">]))</span>
+</code></pre></div>
+
+<ol start="4">
+<li><strong>注意力机制选择</strong>：
+- <strong>基于内容</strong>：相似度匹配
+$$w_i = \frac{\exp(\text{sim}(k, M_i))}{\sum_j \exp(\text{sim}(k, M_j))}$$</li>
+</ol>
+<ul>
+<li><strong>基于位置</strong>：循环或随机访问
+$$w_t = \text{shift}(w_{t-1}, s_t)$$</li>
+</ul>
+<ol start="5">
+<li><strong>训练策略</strong>：</li>
+</ol>
+<p><strong>课程学习</strong>：</p>
+<ul>
+<li>从短序列开始（长度5-10）</li>
+<li>逐渐增加到目标长度</li>
+<li>先训练简单模式，后训练复杂模式</li>
+</ul>
+<p><strong>辅助损失</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 稀疏性损失：鼓励集中注意力</span>
+<span class="n">sparsity_loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">entropy</span><span class="p">(</span><span class="n">attention_weights</span><span class="p">)</span>
+
+<span class="c1"># 记忆利用率损失：鼓励使用所有槽位</span>
+<span class="n">usage</span> <span class="o">=</span> <span class="n">mean</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">attention_weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+<span class="n">utilization_loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">log</span><span class="p">(</span><span class="n">usage</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+
+<span class="n">total_loss</span> <span class="o">=</span> <span class="n">task_loss</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">sparsity_loss</span> <span class="o">+</span> <span class="mf">0.001</span> <span class="o">*</span> <span class="n">utilization_loss</span>
+</code></pre></div>
+
+<ol start="6">
+<li><strong>特定任务优化</strong>：</li>
+</ol>
+<p><strong>复制任务</strong>：</p>
+<ul>
+<li>写阶段：顺序写入</li>
+<li>读阶段：顺序读取</li>
+<li>使用位置编码增强</li>
+</ul>
+<p><strong>算法推理</strong>：</p>
+<ul>
+<li>使用键值对存储</li>
+<li>实现查找表机制</li>
+<li>添加写保护机制</li>
+</ul>
+<p><strong>实验结果预期</strong>：</p>
+<ul>
+<li>复制任务：可处理长度&gt;100的序列</li>
+<li>联想记忆：准确率&gt;95%</li>
+<li>算法执行：简单排序、计数等</li>
+</ul>
+<p>这种架构结合了RNN的序列处理能力和外部记忆的精确存储，适合需要长期精确记忆的任务。</p>
+</details>
+<h3 id="78rnn">练习 7.8：RNN压缩与加速（开放）</h3>
+<p>提出一个将大型LSTM模型压缩50%同时保持95%性能的方案。考虑量化、剪枝、知识蒸馏等技术。</p>
+<p><strong>提示</strong>：不同压缩技术可以组合使用，注意它们的互补性。</p>
+<details>
+<summary>答案</summary>
+<p><strong>综合压缩方案</strong>：</p>
+<ol>
+<li><strong>结构化剪枝（30%压缩）</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">StructuredPruning</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">prune_lstm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lstm_layer</span><span class="p">,</span> <span class="n">sparsity</span><span class="o">=</span><span class="mf">0.3</span><span class="p">):</span>
+        <span class="c1"># 计算各隐藏单元的重要性</span>
+        <span class="n">importance</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">):</span>
+            <span class="c1"># 基于门控激活的方差</span>
+            <span class="n">gate_variance</span> <span class="o">=</span> <span class="n">compute_gate_variance</span><span class="p">(</span><span class="n">lstm_layer</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">importance</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gate_variance</span><span class="p">)</span>
+
+        <span class="c1"># 保留重要的单元</span>
+        <span class="n">threshold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">importance</span><span class="p">,</span> <span class="n">sparsity</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="n">keep_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">imp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">importance</span><span class="p">)</span> <span class="k">if</span> <span class="n">imp</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">]</span>
+
+        <span class="c1"># 创建剪枝后的LSTM</span>
+        <span class="n">new_hidden</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">keep_indices</span><span class="p">)</span>
+        <span class="n">pruned_lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">new_hidden</span><span class="p">)</span>
+
+        <span class="c1"># 复制保留的权重</span>
+        <span class="n">copy_weights</span><span class="p">(</span><span class="n">lstm_layer</span><span class="p">,</span> <span class="n">pruned_lstm</span><span class="p">,</span> <span class="n">keep_indices</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pruned_lstm</span>
+</code></pre></div>
+
+<ol start="2">
+<li><strong>权重量化（2×压缩）</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">quantize_lstm</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">bits</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
+    <span class="c1"># INT8量化</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
+        <span class="k">if</span> <span class="s1">&#39;weight&#39;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+            <span class="c1"># 计算量化参数</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">param</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">zero_point</span> <span class="o">=</span> <span class="o">-</span><span class="n">param</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">/</span> <span class="n">scale</span>
+
+            <span class="c1"># 量化和反量化</span>
+            <span class="n">param_int8</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">param</span> <span class="o">/</span> <span class="n">scale</span> <span class="o">+</span> <span class="n">zero_point</span><span class="p">)</span>
+            <span class="n">param_int8</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">param_int8</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="n">bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># 存储量化参数</span>
+            <span class="n">param</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="n">param_int8</span> <span class="o">-</span> <span class="n">zero_point</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale</span>
+            <span class="n">param</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">scale</span>
+            <span class="n">param</span><span class="o">.</span><span class="n">zero_point</span> <span class="o">=</span> <span class="n">zero_point</span>
+</code></pre></div>
+
+<ol start="3">
+<li><strong>知识蒸馏（性能恢复）</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">class</span> <span class="nc">DistillationTraining</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">teacher_model</span><span class="p">,</span> <span class="n">student_model</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">5.0</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">teacher</span> <span class="o">=</span> <span class="n">teacher_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">student</span> <span class="o">=</span> <span class="n">student_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="n">temperature</span>
+
+    <span class="k">def</span> <span class="nf">distillation_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
+        <span class="c1"># 教师输出（软标签）</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">teacher_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">teacher</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+            <span class="n">soft_targets</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">teacher_outputs</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># 学生输出</span>
+        <span class="n">student_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="n">soft_predictions</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">student_outputs</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># KL散度损失</span>
+        <span class="n">kl_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">soft_predictions</span><span class="p">,</span> <span class="n">soft_targets</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s1">&#39;batchmean&#39;</span><span class="p">)</span>
+
+        <span class="c1"># 硬标签损失</span>
+        <span class="n">hard_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">student_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+
+        <span class="c1"># 组合损失</span>
+        <span class="k">return</span> <span class="mf">0.7</span> <span class="o">*</span> <span class="n">kl_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="n">hard_loss</span>
+</code></pre></div>
+
+<ol start="4">
+<li><strong>低秩分解（额外15%压缩）</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span> <span class="nf">lowrank_factorization</span><span class="p">(</span><span class="n">weight_matrix</span><span class="p">,</span> <span class="n">rank_ratio</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+    <span class="c1"># SVD分解</span>
+    <span class="n">U</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">weight_matrix</span><span class="p">)</span>
+
+    <span class="c1"># 保留主要奇异值</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">weight_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">rank_ratio</span><span class="p">)</span>
+    <span class="n">U_k</span> <span class="o">=</span> <span class="n">U</span><span class="p">[:,</span> <span class="p">:</span><span class="n">k</span><span class="p">]</span>
+    <span class="n">S_k</span> <span class="o">=</span> <span class="n">S</span><span class="p">[:</span><span class="n">k</span><span class="p">]</span>
+    <span class="n">V_k</span> <span class="o">=</span> <span class="n">V</span><span class="p">[:,</span> <span class="p">:</span><span class="n">k</span><span class="p">]</span>
+
+    <span class="c1"># 重构为两个小矩阵</span>
+    <span class="n">W1</span> <span class="o">=</span> <span class="n">U_k</span> <span class="o">@</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">S_k</span><span class="p">))</span>
+    <span class="n">W2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">S_k</span><span class="p">))</span> <span class="o">@</span> <span class="n">V_k</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="k">return</span> <span class="n">W1</span><span class="p">,</span> <span class="n">W2</span>  <span class="c1"># 原来的矩阵乘法变为两次小矩阵乘法</span>
+</code></pre></div>
+
+<ol start="5">
+<li><strong>实施步骤</strong>：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 第1步：结构化剪枝</span>
+<span class="n">pruned_model</span> <span class="o">=</span> <span class="n">prune_model</span><span class="p">(</span><span class="n">original_model</span><span class="p">,</span> <span class="n">sparsity</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+
+<span class="c1"># 第2步：知识蒸馏微调</span>
+<span class="n">distill_train</span><span class="p">(</span><span class="n">teacher</span><span class="o">=</span><span class="n">original_model</span><span class="p">,</span> <span class="n">student</span><span class="o">=</span><span class="n">pruned_model</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="c1"># 第3步：低秩分解</span>
+<span class="n">factorized_model</span> <span class="o">=</span> <span class="n">apply_lowrank</span><span class="p">(</span><span class="n">pruned_model</span><span class="p">,</span> <span class="n">rank_ratio</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+
+<span class="c1"># 第4步：量化</span>
+<span class="n">quantized_model</span> <span class="o">=</span> <span class="n">quantize_lstm</span><span class="p">(</span><span class="n">factorized_model</span><span class="p">,</span> <span class="n">bits</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+
+<span class="c1"># 第5步：量化感知训练</span>
+<span class="n">qat_train</span><span class="p">(</span><span class="n">quantized_model</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>性能与压缩率分析</strong>：</p>
+<p>| 技术 | 压缩率 | 性能保持 | 推理加速 |</p>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>压缩率</th>
+<th>性能保持</th>
+<th>推理加速</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>结构化剪枝</td>
+<td>30%</td>
+<td>98%</td>
+<td>1.3×</td>
+</tr>
+<tr>
+<td>INT8量化</td>
+<td>75%</td>
+<td>99%</td>
+<td>2×</td>
+</tr>
+<tr>
+<td>低秩分解</td>
+<td>15%</td>
+<td>97%</td>
+<td>1.2×</td>
+</tr>
+<tr>
+<td>知识蒸馏</td>
+<td>-</td>
+<td>+2%</td>
+<td>-</td>
+</tr>
+<tr>
+<td><strong>总计</strong></td>
+<td><strong>~52%</strong></td>
+<td><strong>~96%</strong></td>
+<td><strong>~2.5×</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>实施建议</strong>：</p>
+<ol>
+<li>先剪枝再量化，避免量化噪声影响剪枝决策</li>
+<li>蒸馏throughout整个压缩流程</li>
+<li>保留关键层（如最后一层）的精度</li>
+<li>使用渐进式压缩，每步验证性能</li>
+</ol>
+<p>这个方案通过多种技术的组合，实现了目标的50%压缩率和95%性能保持。</p>
+</details>
+            </article>
+            
+            <nav class="page-nav"><a href="chapter6.html" class="nav-link prev">← 第6章：卷积神经网络</a><a href="chapter8.html" class="nav-link next">第8章：Transformer与注意力机制 →</a></nav>
+        </main>
+    </div>
+</body>
+</html>

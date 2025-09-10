@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="./">
+    <title>第1章：优化基础与梯度下降</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/highlight.css">
+    <script src="assets/script.js" defer></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: false,
+                packages: {'[+]': ['noerrors', 'ams']}
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            loader: {
+                load: ['[tex]/noerrors', '[tex]/ams']
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>目录</h3>
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            <div class="sidebar-search">
+                <input type="text" id="sidebar-search-input" placeholder="搜索..." autocomplete="off">
+            </div>
+            <div id="tree-container">
+                <nav class="tree-nav" role="tree">
+                    <div class="tree-item " >
+                        <a href="index.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">现代人工智能：优化与统计视角</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item active" >
+                        <a href="chapter1.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第1章：优化基础与梯度下降</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter2.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第2章：统计学习理论</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter3.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第3章：线性模型与正则化</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter4.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第4章：神经网络基础</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter5.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第5章：深度学习优化</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter6.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第6章：卷积神经网络</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter7.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第7章：循环神经网络与序列建模</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter8.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第8章：Transformer与注意力机制</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter9.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第9章：大语言模型</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter10.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第10章：变分自编码器与生成建模</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter11.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第11章：扩散模型</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter12.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第12章：深度强化学习</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="CLAUDE.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">Untitled</span>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+        </nav>
+        
+        <main class="content">
+            <article>
+                <h1 id="1">第1章：优化基础与梯度下降</h1>
+<p>优化是现代人工智能的数学基石。从最简单的线性回归到复杂的深度神经网络，几乎所有机器学习算法的核心都是求解一个优化问题。本章将从优化理论的基本概念出发，深入探讨梯度下降算法及其变体，为后续章节打下坚实的理论基础。通过本章学习，你将理解为什么梯度下降能够工作，如何选择合适的学习率，以及在实践中如何避免常见的优化陷阱。</p>
+<h2 id="11">1.1 凸优化与非凸优化</h2>
+<h3 id="111">1.1.1 凸集与凸函数</h3>
+<p>在优化理论中，凸性是一个核心概念，它决定了优化问题的难易程度。理解凸性不仅是理论分析的基础，更是判断实际问题求解难度的关键工具。</p>
+<p><strong>定义1.1（凸集）</strong>：集合 $C \subseteq \mathbb{R}^n$ 是凸集，当且仅当对于任意 $x, y \in C$ 和 $\lambda \in [0, 1]$，有：
+$$\lambda x + (1-\lambda)y \in C$$
+直观理解：凸集内任意两点的连线仍在集合内。这个性质保证了优化过程中的"直线搜索"不会离开可行域。</p>
+<div class="codehilite"><pre><span></span><code>凸集示例：              非凸集示例：
+    ____                  ___   ___
+   /    \                /   \_/   \
+  |      |              |           |
+   \____/                \___   ___/
+                             \_/
+</code></pre></div>
+
+<p><strong>常见凸集例子</strong>：</p>
+<ul>
+<li><strong>超平面</strong>：$\{x : a^Tx = b\}$</li>
+<li><strong>半空间</strong>：$\{x : a^Tx \leq b\}$</li>
+<li><strong>球</strong>：$\{x : |x - x_0| \leq r\}$</li>
+<li><strong>椭球</strong>：$\{x : (x-x_0)^TP^{-1}(x-x_0) \leq 1\}$，其中 $P \succ 0$</li>
+<li><strong>多面体</strong>：$\{x : Ax \preceq b\}$（线性不等式的交集）</li>
+<li><strong>锥</strong>：$\{x : x = \theta v, \theta \geq 0\}$</li>
+</ul>
+<p><strong>凸集的运算性质</strong>：</p>
+<ol>
+<li><strong>交集保凸性</strong>：凸集的交集仍是凸集</li>
+<li><strong>仿射变换保凸性</strong>：若 $C$ 是凸集，则 $\{Ax + b : x \in C\}$ 也是凸集</li>
+<li><strong>透视变换</strong>：$P(x, t) = x/t$ 保持凸性（$t &gt; 0$）</li>
+</ol>
+<p><strong>定义1.2（凸函数）</strong>：函数 $f: \mathbb{R}^n \rightarrow \mathbb{R}$ 是凸函数，当且仅当其定义域是凸集，且对于任意 $x, y$ 在定义域内和 $\lambda \in [0, 1]$，有：
+$$f(\lambda x + (1-\lambda)y) \leq \lambda f(x) + (1-\lambda)f(y)$$
+这个不等式被称为Jensen不等式，它表明函数曲线位于任意两点连线的下方。</p>
+<p><strong>几何解释</strong>：凸函数的上境图（epigraph）$\text{epi}(f) = \{(x, t) : f(x) \leq t\}$ 是凸集。这提供了从集合角度理解函数凸性的方式。</p>
+<p><strong>严格凸与强凸</strong>：</p>
+<ul>
+<li><strong>严格凸</strong>：当 $x \neq y$ 且 $\lambda \in (0, 1)$ 时，不等式严格成立</li>
+<li><strong>强凸</strong>：存在 $\mu &gt; 0$，使得 $f(x) - \frac{\mu}{2}|x|^2$ 仍是凸函数</li>
+</ul>
+<p>强凸性保证了函数有唯一最小值点，这在优化算法的收敛性分析中至关重要。</p>
+<h3 id="112">1.1.2 局部最优与全局最优</h3>
+<p>凸优化最重要的性质是：<strong>局部最优即全局最优</strong>。这个性质是凸优化理论的基石，也是为什么凸问题在实践中如此重要的原因。</p>
+<p><strong>定义1.3（局部最优）</strong>：点 $x^*$ 是函数 $f$ 的局部最小值点，如果存在邻域 $\mathcal{N}(x^*)$，使得对所有 $x \in \mathcal{N}(x^*)$，有 $f(x^*) \leq f(x)$。</p>
+<p><strong>定义1.4（全局最优）</strong>：点 $x^*$ 是函数 $f$ 的全局最小值点，如果对定义域内所有 $x$，有 $f(x^*) \leq f(x)$。</p>
+<p><strong>定理1.1（凸函数的基本定理）</strong>：对于凸函数 $f$，如果 $x^*$ 是局部最小值点，则 $x^*$ 也是全局最小值点。</p>
+<p><strong>证明思路</strong>：反证法。假设 $x^*$ 是局部最优但非全局最优，则存在 $y$ 使得 $f(y) &lt; f(x^*)$。由凸性，连线上所有点的函数值都小于 $f(x^*)$，与局部最优矛盾。</p>
+<p>这个性质使得凸优化问题相对容易求解。相比之下，非凸优化可能存在多个局部最优：</p>
+<div class="codehilite"><pre><span></span><code>凸函数（单峰）：          非凸函数（多峰）：
+    \       /                /\    /\
+     \     /                /  \  /  \
+      \___/                /    \/    \
+       x*                  x1*  x2*  x3*
+    (全局最优)           (多个局部最优)
+</code></pre></div>
+
+<p><strong>实际意义</strong>：</p>
+<ul>
+<li><strong>凸问题</strong>：任何局部搜索算法（如梯度下降）都能找到全局最优</li>
+<li><strong>非凸问题</strong>：需要全局优化技术（如模拟退火、遗传算法）或多次随机初始化</li>
+</ul>
+<p><strong>深度学习中的非凸性</strong>：
+神经网络的损失函数通常是高度非凸的，但实践表明：</p>
+<ol>
+<li><strong>过参数化</strong>使得大部分局部最优性能相近</li>
+<li><strong>SGD的噪声</strong>帮助逃离差的局部最优</li>
+<li><strong>良好的初始化</strong>可以避免糟糕的区域</li>
+</ol>
+<h3 id="113">1.1.3 凸性判定</h3>
+<p>在实践中，我们需要判断函数是否为凸函数。以下是常用的判定方法，从简单到复杂逐步深入。</p>
+<p><strong>零阶条件（定义法）</strong>：
+直接验证Jensen不等式。适用于简单函数，但通常较繁琐。</p>
+<p><strong>一阶条件</strong>：可微函数 $f$ 是凸函数，当且仅当对所有 $x, y$ 在定义域内：
+$$f(y) \geq f(x) + \nabla f(x)^T(y-x)$$
+这意味着函数始终位于其切线（一阶泰勒近似）上方。</p>
+<p><strong>几何直觉</strong>：凸函数的切线是全局下界。</p>
+<div class="codehilite"><pre><span></span><code>      f(y)
+       /|
+      / |
+     /  |  f(x) + ∇f(x)^T(y-x)
+    /   |
+   /____|
+   x    y
+</code></pre></div>
+
+<p><strong>二阶条件</strong>：二次可微函数 $f$ 是凸函数，当且仅当其Hessian矩阵半正定：
+$$\nabla^2 f(x) \succeq 0, \quad \forall x$$
+<strong>Hessian矩阵的计算</strong>：
+对于 $f: \mathbb{R}^n \to \mathbb{R}$，Hessian是 $n \times n$ 矩阵：
+$$[\nabla^2 f(x)]_{ij} = \frac{\partial^2 f}{\partial x_i \partial x_j}$$
+<strong>半正定判定</strong>：</p>
+<ul>
+<li>所有特征值 $\lambda_i \geq 0$</li>
+<li>所有主子式非负</li>
+<li>对所有 $v \neq 0$，有 $v^T\nabla^2 f(x)v \geq 0$</li>
+</ul>
+<p><strong>保凸运算</strong>：</p>
+<ol>
+<li><strong>非负加权和</strong>：$f = \sum_i \alpha_i f_i$，其中 $\alpha_i \geq 0$，$f_i$ 凸</li>
+<li><strong>复合</strong>：$g(f(x))$，其中 $g$ 凸递增，$f$ 凸</li>
+<li><strong>逐点最大</strong>：$f(x) = \max_i f_i(x)$，其中 $f_i$ 凸</li>
+<li><strong>透视函数</strong>：$f(x, t) = t \cdot g(x/t)$，其中 $g$ 凸，$t &gt; 0$</li>
+</ol>
+<p><strong>经验法则与常见函数</strong>：</p>
+<ul>
+<li><strong>线性/仿射</strong>：$f(x) = a^Tx + b$ 既凸又凹</li>
+<li><strong>二次函数</strong>：$f(x) = \frac{1}{2}x^TAx + b^Tx + c$ 当 $A \succeq 0$ 时为凸</li>
+<li><strong>指数函数</strong>：$e^{ax}$ 对任意 $a$ 为凸</li>
+<li><strong>幂函数</strong>：$x^p$ 在 $x &gt; 0$ 时，$p \geq 1$ 或 $p \leq 0$ 为凸</li>
+<li><strong>对数函数</strong>：$-\log(x)$ 在 $x &gt; 0$ 时为凸</li>
+<li><strong>负熵</strong>：$x\log(x)$ 在 $x &gt; 0$ 时为凸</li>
+<li><strong>范数</strong>：$|x|_p$ 对 $p \geq 1$ 为凸</li>
+<li><strong>Log-sum-exp</strong>：$\log(\sum_i e^{x_i})$ 为凸（softmax的基础）</li>
+</ul>
+<p><strong>机器学习中的凸函数</strong>：</p>
+<ul>
+<li><strong>均方误差</strong>：$(y - w^Tx)^2$ 关于 $w$ 为凸</li>
+<li><strong>交叉熵</strong>：$-y\log(p) - (1-y)\log(1-p)$ 关于 $p$ 为凸</li>
+<li><strong>铰链损失</strong>：$\max(0, 1 - y \cdot w^Tx)$ 关于 $w$ 为凸</li>
+<li><strong>正则化项</strong>：$|w|_1$（L1）和 $|w|_2^2$（L2）都是凸的</li>
+</ul>
+<h2 id="12">1.2 梯度下降及其变体</h2>
+<p>梯度下降是优化算法的基石，其核心思想简单而深刻：沿着负梯度方向移动以减小函数值。这个想法可以追溯到柯西1847年的工作，但直到今天仍是训练神经网络的主要方法。</p>
+<p><strong>梯度的几何意义</strong>：
+梯度 $\nabla f(x)$ 指向函数增长最快的方向，因此负梯度 $-\nabla f(x)$ 是函数下降最快的方向。这可以通过泰勒展开证明：
+$$f(x + \delta) \approx f(x) + \nabla f(x)^T\delta + O(|\delta|^2)$$
+当 $|\delta|$ 固定时，$\delta = -\alpha \nabla f(x)$ 使得一阶项最小。</p>
+<h3 id="121-batch-gradient-descent">1.2.1 批量梯度下降（Batch Gradient Descent）</h3>
+<p>批量梯度下降使用整个数据集计算梯度，是最基础的优化算法。</p>
+<p><strong>更新规则</strong>：
+$$\theta_{t+1} = \theta_t - \eta \nabla_\theta \mathcal{L}(\theta_t)$$
+其中 $\eta$ 是学习率，$\mathcal{L}(\theta) = \frac{1}{N}\sum_{i=1}^N \ell(\theta; x_i, y_i)$ 是损失函数。</p>
+<p><strong>算法流程</strong>：</p>
+<div class="codehilite"><pre><span></span><code>算法：批量梯度下降
+输入：初始参数 θ₀，学习率 η，收敛阈值 ε
+输出：优化后的参数 θ*
+
+1. t ← 0
+2. while ||∇L(θₜ)|| &gt; ε do
+3.     gₜ ← ∇L(θₜ)           # 计算全数据集梯度
+4.     θₜ₊₁ ← θₜ - η·gₜ       # 参数更新
+5.     t ← t + 1
+6. return θₜ
+</code></pre></div>
+
+<p><strong>收敛条件的选择</strong>：</p>
+<ul>
+<li><strong>梯度范数</strong>：$|\nabla \mathcal{L}(\theta)| &lt; \epsilon$（一阶条件）</li>
+<li><strong>函数值变化</strong>：$|\mathcal{L}(\theta_t) - \mathcal{L}(\theta_{t-1})| &lt; \epsilon$</li>
+<li><strong>参数变化</strong>：$|\theta_t - \theta_{t-1}| &lt; \epsilon$</li>
+<li><strong>最大迭代次数</strong>：$t &gt; T_{max}$（防止无限循环）</li>
+</ul>
+<p>实践中通常组合使用多个条件。</p>
+<p><strong>优点</strong>：</p>
+<ul>
+<li><strong>收敛稳定</strong>：每步都是真实梯度方向</li>
+<li><strong>理论保证</strong>：在凸函数上保证收敛到全局最优</li>
+<li><strong>易于分析</strong>：收敛速率有明确的理论界</li>
+</ul>
+<p><strong>缺点</strong>：</p>
+<ul>
+<li><strong>计算代价高</strong>：每次迭代需要遍历所有 $N$ 个数据点</li>
+<li><strong>内存需求大</strong>：需要同时加载所有数据</li>
+<li><strong>冗余计算</strong>：相似样本提供的梯度信息有重叠</li>
+<li><strong>局部最优</strong>：在非凸问题上容易陷入局部最优</li>
+</ul>
+<p><strong>计算复杂度分析</strong>：</p>
+<ul>
+<li>单次迭代：$O(Nd)$，其中 $d$ 是参数维度</li>
+<li>达到 $\epsilon$ 精度：$O(Nd/\epsilon)$（凸函数）</li>
+<li>内存需求：$O(Nd + d)$</li>
+</ul>
+<h3 id="122-stochastic-gradient-descent-sgd">1.2.2 随机梯度下降（Stochastic Gradient Descent, SGD）</h3>
+<p>SGD是现代深度学习的workhorse，通过引入随机性大幅提高计算效率。</p>
+<p><strong>核心思想</strong>：用单个样本的梯度估计整体梯度。</p>
+<p><strong>更新规则</strong>：
+$$\theta_{t+1} = \theta_t - \eta \nabla_\theta \ell(\theta_t; x_{i_t}, y_{i_t})$$
+其中 $i_t$ 是在时刻 $t$ 随机选择的样本索引。</p>
+<p><strong>关键洞察——无偏估计</strong>：虽然单个样本的梯度有噪声，但期望值等于真实梯度：
+$$\mathbb{E}_{i \sim \text{Uniform}(1,N)}[\nabla_\theta \ell(\theta; x_i, y_i)] = \frac{1}{N}\sum_{i=1}^N \nabla_\theta \ell(\theta; x_i, y_i) = \nabla_\theta \mathcal{L}(\theta)$$
+这保证了SGD在期望意义下沿着正确的方向前进。</p>
+<p><strong>梯度噪声的分析</strong>：
+定义梯度噪声：$\xi_t = \nabla_\theta \ell(\theta_t; x_{i_t}, y_{i_t}) - \nabla_\theta \mathcal{L}(\theta_t)$</p>
+<p>噪声性质：</p>
+<ul>
+<li><strong>零均值</strong>：$\mathbb{E}[\xi_t] = 0$</li>
+<li><strong>有界方差</strong>：$\mathbb{E}[|\xi_t|^2] \leq \sigma^2$</li>
+</ul>
+<p><strong>SGD的优势</strong>：</p>
+<ol>
+<li><strong>计算效率</strong>：单次更新只需 $O(d)$ 而非 $O(Nd)$</li>
+<li><strong>在线学习</strong>：可以处理流式数据</li>
+<li><strong>逃离局部最优</strong>：噪声帮助跳出浅层局部最优</li>
+<li><strong>隐式正则化</strong>：噪声起到正则化作用，提高泛化</li>
+</ol>
+<p><strong>SGD的挑战</strong>：</p>
+<ol>
+<li><strong>收敛慢</strong>：$O(1/\sqrt{T})$ vs 批量GD的 $O(1/T)$</li>
+<li><strong>振荡</strong>：在最优点附近持续振荡</li>
+<li><strong>学习率敏感</strong>：需要仔细调整学习率计划</li>
+</ol>
+<p><strong>方差减小技巧</strong>：</p>
+<ul>
+<li><strong>递减学习率</strong>：$\eta_t = \eta_0/\sqrt{t}$ 或 $\eta_t = \eta_0/(1 + \lambda t)$</li>
+<li><strong>平均化</strong>：Polyak平均 $\bar{\theta} = \frac{1}{T}\sum_{t=1}^T \theta_t$</li>
+<li><strong>重要性采样</strong>：根据梯度大小调整采样概率</li>
+</ul>
+<h3 id="123-mini-batch-gradient-descent">1.2.3 小批量梯度下降（Mini-batch Gradient Descent）</h3>
+<p>小批量方法是实践中的黄金标准，巧妙平衡了计算效率和收敛稳定性。</p>
+<p><strong>更新规则</strong>：
+$$\theta_{t+1} = \theta_t - \eta \frac{1}{|B|} \sum_{i \in B} \nabla_\theta \ell(\theta_t; x_i, y_i)$$
+其中 $B$ 是批量（batch），$|B|$ 是批量大小。</p>
+<p><strong>为什么使用小批量？</strong></p>
+<ol>
+<li><strong>硬件效率</strong>：现代GPU/TPU针对矩阵运算优化，批量计算比逐样本快</li>
+<li><strong>梯度质量</strong>：减小方差，更稳定的更新方向</li>
+<li><strong>并行化</strong>：批内样本可以并行处理</li>
+<li><strong>内存利用</strong>：充分利用GPU内存带宽</li>
+</ol>
+<p><strong>批量大小的影响</strong>：</p>
+<div class="codehilite"><pre><span></span><code>批量大小    噪声水平    收敛速度    泛化性能    GPU利用率
+1          最高        最慢        好          低
+32         高          慢          较好        中
+128        中          中          中          高
+512        低          快          较差        很高
+2048+      很低        很快        差          饱和
+</code></pre></div>
+
+<p><strong>批量大小选择的经验法则</strong>：</p>
+<ul>
+<li><strong>小批量（8-32）</strong>：</li>
+<li>更好的泛化（噪声作为正则化）</li>
+<li>适合小模型或内存受限场景</li>
+<li>
+<p>常用于强化学习</p>
+</li>
+<li>
+<p><strong>中批量（64-256）</strong>：</p>
+</li>
+<li>最常用的范围</li>
+<li>良好的效率-性能平衡</li>
+<li>
+<p>适合大多数视觉和NLP任务</p>
+</li>
+<li>
+<p><strong>大批量（512-4096）</strong>：</p>
+</li>
+<li>训练稳定，收敛快</li>
+<li>需要学习率warmup和特殊技巧</li>
+<li>用于大规模分布式训练</li>
+</ul>
+<p><strong>大批量训练的挑战与解决</strong>：</p>
+<ol>
+<li>
+<p><strong>泛化差距</strong>：大批量模型测试性能往往较差
+   - 解决：使用更长的训练时间
+   - LARS/LAMB优化器专门为大批量设计</p>
+</li>
+<li>
+<p><strong>学习率缩放</strong>：
+   - 线性缩放：$\eta \propto |B|$（批量翻倍，学习率翻倍）
+   - 平方根缩放：$\eta \propto \sqrt{|B|}$（更保守）</p>
+</li>
+<li>
+<p><strong>初始不稳定</strong>：
+   - 学习率warmup：前几个epoch逐渐增加学习率
+   - 梯度累积：模拟大批量而不增加内存</p>
+</li>
+</ol>
+<p><strong>批量构造策略</strong>：</p>
+<ul>
+<li><strong>随机采样</strong>：最常用，每个epoch重新打乱</li>
+<li><strong>分层采样</strong>：保证批内类别平衡</li>
+<li><strong>难例挖掘</strong>：优先采样损失大的样本</li>
+<li><strong>课程学习</strong>：从易到难逐步增加难度</li>
+</ul>
+<h3 id="124-momentum">1.2.4 动量方法（Momentum）</h3>
+<p>动量方法通过累积历史梯度信息来加速收敛：
+$$\begin{aligned}
+v_{t+1} &amp;= \beta v_t + (1-\beta) g_t \\
+\theta_{t+1} &amp;= \theta_t - \eta v_{t+1}
+\end{aligned}$$
+其中 $\beta$ 是动量系数（通常为0.9）。</p>
+<p>物理直觉：想象一个球在山谷中滚动，动量帮助它越过小的局部起伏。</p>
+<div class="codehilite"><pre><span></span><code>无动量：                  有动量：
+  振荡路径                 平滑路径
+  /\/\/\                    ___
+ /      \                  /   \
+/        \                /     \
+</code></pre></div>
+
+<p><strong>Nesterov加速梯度（NAG）</strong>：
+先根据动量"预测"下一步位置，然后在该位置计算梯度：
+$$\begin{aligned}
+v_{t+1} &amp;= \beta v_t + (1-\beta) \nabla_\theta \mathcal{L}(\theta_t - \eta \beta v_t) \\
+\theta_{t+1} &amp;= \theta_t - \eta v_{t+1}
+\end{aligned}$$</p>
+<h2 id="13">1.3 收敛性分析</h2>
+<p>理解优化算法的收敛性对于实践应用至关重要。</p>
+<h3 id="131-lipschitz">1.3.1 Lipschitz连续性</h3>
+<p><strong>定义1.3</strong>：函数 $f$ 的梯度是 $L$-Lipschitz连续的，如果：
+$$|\nabla f(x) - \nabla f(y)| \leq L|x - y|$$
+直观理解：梯度变化不会太剧烈。</p>
+<p><strong>定理1.2（梯度下降收敛性）</strong>：对于 $L$-光滑的凸函数，选择学习率 $\eta \leq 1/L$，梯度下降保证：
+$$f(\theta_T) - f(\theta^*) \leq \frac{|\theta_0 - \theta^*|^2}{2\eta T}$$
+这表明误差以 $O(1/T)$ 的速率下降。</p>
+<h3 id="132">1.3.2 强凸性</h3>
+<p><strong>定义1.4</strong>：函数 $f$ 是 $\mu$-强凸的，如果：
+$$f(y) \geq f(x) + \nabla f(x)^T(y-x) + \frac{\mu}{2}|y-x|^2$$
+强凸函数有唯一的全局最优点。</p>
+<p><strong>定理1.3（强凸函数的线性收敛）</strong>：对于 $\mu$-强凸且 $L$-光滑的函数，梯度下降达到线性收敛率：
+$$f(\theta_T) - f(\theta^*) \leq \left(1 - \frac{\mu}{L}\right)^T [f(\theta_0) - f(\theta^*)]$$
+条件数 $\kappa = L/\mu$ 决定了收敛速度：</p>
+<ul>
+<li>$\kappa$ 接近1：快速收敛</li>
+<li>$\kappa$ 很大：缓慢收敛</li>
+</ul>
+<h3 id="133-sgd">1.3.3 SGD的收敛性</h3>
+<p>SGD的收敛性更复杂，因为存在梯度噪声。</p>
+<p><strong>定理1.4（SGD收敛性）</strong>：假设梯度噪声有界：$\mathbb{E}[|\nabla \ell - \nabla \mathcal{L}|^2] \leq \sigma^2$，使用递减学习率 $\eta_t = \eta_0/\sqrt{t}$：
+$$\mathbb{E}[f(\theta_T) - f(\theta^*)] \leq O\left(\frac{1}{\sqrt{T}}\right)$$
+注意SGD的收敛速率 $O(1/\sqrt{T})$ 慢于批量梯度下降的 $O(1/T)$。</p>
+<h2 id="14">1.4 学习率选择的经验法则</h2>
+<p>学习率是优化中最重要的超参数。选择不当会导致训练失败。</p>
+<h3 id="141">1.4.1 固定学习率策略</h3>
+<p><strong>经验法则</strong>：</p>
+<ol>
+<li>从较大学习率开始（如0.1），观察损失曲线</li>
+<li>如果损失发散或振荡，除以10</li>
+<li>如果收敛太慢，乘以2-3</li>
+<li>典型范围：[1e-4, 1]</li>
+</ol>
+<div class="codehilite"><pre><span></span><code>学习率过大：              学习率适中：           学习率过小：
+损失发散                  快速下降               缓慢下降
+  /\  /\                    \                      \___
+ /  \/  \                    \___                      \___
+/        \                      \___                      \__
+</code></pre></div>
+
+<h3 id="142">1.4.2 学习率衰减策略</h3>
+<p><strong>步长衰减（Step Decay）</strong>：
+$$\eta_t = \eta_0 \cdot \gamma^{\lfloor t/s \rfloor}$$
+其中 $\gamma$ 通常为0.1，$s$ 是衰减周期。</p>
+<p><strong>指数衰减（Exponential Decay）</strong>：
+$$\eta_t = \eta_0 \cdot e^{-\lambda t}$$
+<strong>余弦退火（Cosine Annealing）</strong>：
+$$\eta_t = \eta_{min} + \frac{1}{2}(\eta_{max} - \eta_{min})(1 + \cos(\pi t/T))$$</p>
+<h3 id="143">1.4.3 自适应学习率</h3>
+<p>现代深度学习常用自适应方法（Adam、RMSprop等），它们根据梯度历史自动调整学习率。核心思想：</p>
+<ul>
+<li>频繁更新的参数：降低学习率</li>
+<li>稀疏更新的参数：提高学习率</li>
+</ul>
+<p><strong>实用建议</strong>：</p>
+<ul>
+<li>计算机视觉：SGD + 动量 + 学习率衰减</li>
+<li>NLP/推荐系统：Adam/AdamW</li>
+<li>强化学习：Adam</li>
+<li>微调预训练模型：较小学习率（1e-5到1e-4）</li>
+</ul>
+<h2 id="15">1.5 历史人物：柯西与最速下降法的诞生</h2>
+<p>奥古斯丁-路易·柯西（Augustin-Louis Cauchy, 1789-1857）是19世纪最伟大的数学家之一。1847年，他在研究天体力学问题时提出了最速下降法（method of steepest descent），这是梯度下降算法的前身。</p>
+<h3 id="_1">柯西的关键贡献</h3>
+<p>柯西面临的问题是求解非线性方程组，他提出了革命性的想法：</p>
+<ol>
+<li><strong>局部线性化</strong>：在当前点用泰勒展开近似函数</li>
+<li><strong>最速下降方向</strong>：沿负梯度方向是函数值下降最快的方向</li>
+<li><strong>迭代求解</strong>：通过反复迭代逼近最优解</li>
+</ol>
+<p>柯西的原始论文标题是《Méthode générale pour la résolution des systèmes d'équations simultanées》（求解联立方程组的一般方法）。有趣的是，柯西当时并没有使用"梯度"这个术语，而是用"导数系数"来描述。</p>
+<h3 id="ai">从天文学到AI的跨越</h3>
+<p>柯西方法最初用于计算行星轨道，需要求解复杂的非线性方程。170多年后，同样的数学原理支撑着训练包含数万亿参数的神经网络。这种跨越世纪的数学传承令人惊叹。</p>
+<p><strong>历史趣事</strong>：柯西是个多产的数学家，一生发表了789篇论文。巴黎科学院因为他投稿太多，不得不限制每人每周最多提交一篇论文——这个规定被称为"柯西规则"。</p>
+<h2 id="16-llm">1.6 现代连接：LLM训练中的梯度累积与混合精度优化</h2>
+<p>大语言模型（LLM）的训练将梯度下降推向了工程极限。以GPT-3（1750亿参数）为例，直接应用梯度下降会遇到严重的内存和计算挑战。</p>
+<h3 id="161-gradient-accumulation">1.6.1 梯度累积（Gradient Accumulation）</h3>
+<p><strong>问题</strong>：大模型需要大批量训练以保证稳定性，但GPU内存有限。</p>
+<p><strong>解决方案</strong>：梯度累积将大批量分解为多个小批量：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 伪代码</span>
+<span class="n">effective_batch_size</span> <span class="o">=</span> <span class="mi">4096</span>
+<span class="n">micro_batch_size</span> <span class="o">=</span> <span class="mi">32</span>
+<span class="n">accumulation_steps</span> <span class="o">=</span> <span class="n">effective_batch_size</span> <span class="o">//</span> <span class="n">micro_batch_size</span>
+
+<span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">accumulation_steps</span><span class="p">):</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">compute_loss</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="n">step</span><span class="p">])</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">/</span> <span class="n">accumulation_steps</span>  <span class="c1"># 规范化</span>
+    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>  <span class="c1"># 累积梯度</span>
+
+<span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>  <span class="c1"># 仅在累积完成后更新</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</code></pre></div>
+
+<p><strong>数学等价性</strong>：
+$$\nabla_\theta \mathcal{L}_{large} = \frac{1}{N}\sum_{i=1}^N \nabla_\theta \ell_i = \frac{1}{K}\sum_{k=1}^K \left(\frac{1}{M}\sum_{m=1}^M \nabla_\theta \ell_{k,m}\right)$$
+其中 $N = K \times M$ 是总批量大小。</p>
+<h3 id="162-mixed-precision-training">1.6.2 混合精度训练（Mixed Precision Training）</h3>
+<p><strong>核心思想</strong>：使用FP16进行前向/反向传播，但保持FP32的主权重副本。</p>
+<p><strong>优势</strong>：</p>
+<ul>
+<li>内存减少约50%</li>
+<li>计算速度提升2-3倍（在Tensor Core上）</li>
+</ul>
+<p><strong>关键技术</strong>：</p>
+<ol>
+<li>
+<p><strong>损失缩放（Loss Scaling）</strong>：防止FP16的梯度下溢
+$$\mathcal{L}_{scaled} = s \cdot \mathcal{L}, \quad \nabla_\theta \mathcal{L} = \frac{1}{s} \nabla_\theta \mathcal{L}_{scaled}$$</p>
+</li>
+<li>
+<p><strong>动态损失缩放</strong>：自适应调整缩放因子
+   - 如果梯度溢出：减小 $s$
+   - 如果连续N步无溢出：增大 $s$</p>
+</li>
+</ol>
+<h3 id="163-gradient-checkpointing">1.6.3 梯度检查点（Gradient Checkpointing）</h3>
+<p><strong>内存-计算权衡</strong>：通过重计算节省激活内存。</p>
+<p>不保存所有中间激活，而是：</p>
+<ol>
+<li>前向传播时只保存关键检查点</li>
+<li>反向传播时重新计算所需激活</li>
+</ol>
+<p>内存复杂度：$O(\sqrt{n})$ vs $O(n)$（n是层数）</p>
+<h3 id="164-llm">1.6.4 LLM训练的实际考虑</h3>
+<p><strong>ChatGPT/GPT-4级别模型的典型设置</strong>：</p>
+<ul>
+<li>批量大小：数百万tokens</li>
+<li>学习率：带warmup的余弦衰减</li>
+<li>优化器：AdamW（修正的Adam，解耦权重衰减）</li>
+<li>梯度裁剪：防止梯度爆炸（通常clip_norm=1.0）</li>
+</ul>
+<p><strong>规模法则（Scaling Laws）</strong>：
+Kaplan等人发现损失与模型大小的幂律关系：
+$$\mathcal{L}(N) = \left(\frac{N_c}{N}\right)^{\alpha_N}$$
+其中 $N$ 是参数数量，$\alpha_N \approx 0.076$。</p>
+<p>这意味着：</p>
+<ul>
+<li>10倍参数 → 损失降低约15%</li>
+<li>性能提升是可预测的</li>
+<li>但计算成本呈超线性增长</li>
+</ul>
+<h2 id="_2">本章小结</h2>
+<p>本章我们系统学习了优化理论的基础知识，这些内容构成了现代AI算法的数学基石。</p>
+<h3 id="_3">核心概念回顾</h3>
+<ol>
+<li>
+<p><strong>凸性的重要性</strong>：
+   - 凸优化问题保证局部最优即全局最优
+   - 非凸优化是深度学习的常态，需要特殊技巧</p>
+</li>
+<li>
+<p><strong>梯度下降算法族</strong>：
+   - 批量GD：稳定但计算密集
+   - SGD：高效但有噪声
+   - 小批量GD：实践中的平衡选择
+   - 动量方法：加速收敛并减少振荡</p>
+</li>
+<li>
+<p><strong>收敛性理论</strong>：
+   - 光滑性（Lipschitz连续）确保稳定性
+   - 强凸性带来线性收敛
+   - SGD收敛较慢但实践效果好</p>
+</li>
+<li>
+<p><strong>学习率策略</strong>：
+   - 固定学习率：简单但需要调优
+   - 学习率衰减：提高后期收敛精度
+   - 自适应方法：根据梯度历史自动调整</p>
+</li>
+</ol>
+<h3 id="_4">关键公式汇总</h3>
+<p>| 概念 | 公式 | 说明 |</p>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>公式</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>凸函数定义</td>
+<td>$f(\lambda x + (1-\lambda)y) \leq \lambda f(x) + (1-\lambda)f(y)$</td>
+<td>Jensen不等式</td>
+</tr>
+<tr>
+<td>梯度下降</td>
+<td>$\theta_{t+1} = \theta_t - \eta \nabla_\theta \mathcal{L}(\theta_t)$</td>
+<td>基本更新规则</td>
+</tr>
+<tr>
+<td>动量更新</td>
+<td>$v_{t+1} = \beta v_t + (1-\beta) g_t$</td>
+<td>指数移动平均</td>
+</tr>
+<tr>
+<td>凸函数收敛</td>
+<td>$f(\theta_T) - f(\theta^*) \leq O(1/T)$</td>
+<td>次线性收敛</td>
+</tr>
+<tr>
+<td>强凸收敛</td>
+<td>$f(\theta_T) - f(\theta^*) \leq (1-\mu/L)^T[f(\theta_0) - f(\theta^*)]$</td>
+<td>线性收敛</td>
+</tr>
+<tr>
+<td>SGD收敛</td>
+<td>$\mathbb{E}[f(\theta_T) - f(\theta^*)] \leq O(1/\sqrt{T})$</td>
+<td>带噪声的收敛</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_5">实用要点</h3>
+<ul>
+<li><strong>调试优化问题时</strong>，先检查函数是否凸，这决定了问题的难度</li>
+<li><strong>选择优化器时</strong>，考虑问题特性：稀疏数据用自适应方法，密集数据用SGD+动量</li>
+<li><strong>设置学习率时</strong>，从较大值开始逐步降低，观察损失曲线</li>
+<li><strong>批量大小选择</strong>，需要在计算效率和收敛稳定性之间平衡</li>
+<li><strong>现代大模型训练</strong>，需要工程技巧如梯度累积、混合精度来突破硬件限制</li>
+</ul>
+<h2 id="_6">练习题</h2>
+<h3 id="_7">基础题</h3>
+<p><strong>习题1.1</strong> 判断下列函数是否为凸函数：</p>
+<ul>
+<li>(a) $f(x) = e^x + e^{-x}$</li>
+<li>(b) $f(x) = x^3$</li>
+<li>(c) $f(x) = \log(1 + e^x)$（LogSumExp）</li>
+<li>(d) $f(x, y) = xy$</li>
+</ul>
+<p><em>提示</em>：使用二阶导数判定法或定义验证。</p>
+<details>
+<summary>答案</summary>
+<p>(a) <strong>凸函数</strong>。$f''(x) = e^x + e^{-x} &gt; 0$ 对所有 $x$ 成立。</p>
+<p>(b) <strong>非凸函数</strong>。$f''(x) = 6x$，当 $x &lt; 0$ 时 $f''(x) &lt; 0$。</p>
+<p>(c) <strong>凸函数</strong>。$f''(x) = \frac{e^x}{(1+e^x)^2} &gt; 0$ 对所有 $x$ 成立。</p>
+<p>(d) <strong>非凸非凹</strong>。Hessian矩阵 $H = \begin{bmatrix} 0 &amp; 1 \\ 1 &amp; 0 \end{bmatrix}$ 的特征值为 $\pm 1$，既有正值又有负值。</p>
+</details>
+<p><strong>习题1.2</strong> 给定凸函数 $f(x) = \frac{1}{2}x^TAx + b^Tx$，其中 $A$ 是正定矩阵：</p>
+<ul>
+<li>(a) 求最优解 $x^*$</li>
+<li>(b) 如果 $A$ 的条件数为100，使用梯度下降需要多少次迭代才能将误差减小到初始的1%？</li>
+</ul>
+<p><em>提示</em>：利用一阶最优性条件和线性收敛公式。</p>
+<details>
+<summary>答案</summary>
+<p>(a) 一阶最优性条件：$\nabla f(x^*) = Ax^* + b = 0$，因此 $x^* = -A^{-1}b$。</p>
+<p>(b) 条件数 $\kappa = 100$，收敛率 $r = 1 - 1/\kappa = 0.99$。
+要使误差降到1%：$(0.99)^T &lt; 0.01$
+$T &gt; \frac{\log(0.01)}{\log(0.99)} \approx 458$ 次迭代。</p>
+</details>
+<p><strong>习题1.3</strong> 考虑函数 $f(x) = \frac{1}{n}\sum_{i=1}^n (a_i^Tx - b_i)^2$（最小二乘问题）：</p>
+<ul>
+<li>(a) 计算梯度 $\nabla f(x)$</li>
+<li>(b) 计算Hessian矩阵 $\nabla^2 f(x)$</li>
+<li>(c) 该函数是否强凸？如果是，给出强凸参数</li>
+</ul>
+<p><em>提示</em>：将求和展开，利用矩阵形式简化。</p>
+<details>
+<summary>答案</summary>
+<p>(a) $\nabla f(x) = \frac{2}{n}\sum_{i=1}^n a_i(a_i^Tx - b_i) = \frac{2}{n}(A^TAx - A^Tb)$
+其中 $A = [a_1, ..., a_n]^T$。</p>
+<p>(b) $\nabla^2 f(x) = \frac{2}{n}A^TA$</p>
+<p>(c) 如果 $A$ 列满秩，则 $A^TA$ 正定，函数强凸。
+强凸参数 $\mu = \frac{2}{n}\lambda_{min}(A^TA)$。</p>
+</details>
+<h3 id="_8">挑战题</h3>
+<p><strong>习题1.4</strong> （动量方法的收敛性）考虑二次函数 $f(x) = \frac{1}{2}x^2$，使用动量方法：
+$$v_{t+1} = \beta v_t - \eta \nabla f(x_t), \quad x_{t+1} = x_t + v_{t+1}$$</p>
+<ul>
+<li>(a) 写出该系统的递推关系矩阵形式</li>
+<li>(b) 分析什么条件下系统收敛</li>
+<li>(c) 最优的 $\beta$ 和 $\eta$ 选择是什么？</li>
+</ul>
+<p><em>提示</em>：将系统写成 $z_{t+1} = Az_t$ 形式，分析矩阵 $A$ 的谱半径。</p>
+<details>
+<summary>答案</summary>
+<p>(a) 令 $z_t = [x_t, v_t]^T$，则：
+$$z_{t+1} = \begin{bmatrix} 1 &amp; 1 \\ -\eta &amp; \beta \end{bmatrix} z_t$$
+(b) 收敛条件：特征多项式 $\lambda^2 - \beta\lambda + \eta = 0$ 的根模长小于1。
+要求：$\eta &lt; \frac{(1+\beta)^2}{4}$ 且 $\beta &lt; 1$。</p>
+<p>(c) 临界阻尼时收敛最快：$\beta = 2\sqrt{\eta} - 1$。
+对于 $\eta = 0.25$，最优 $\beta = 0$（无动量）。</p>
+</details>
+<p><strong>习题1.5</strong> （SGD的方差减小）考虑有限和优化问题：
+$$f(x) = \frac{1}{n}\sum_{i=1}^n f_i(x)$$
+比较以下三种策略的梯度估计方差：</p>
+<ul>
+<li>(a) 均匀随机采样一个样本</li>
+<li>(b) 不重复地遍历所有样本（随机排列）</li>
+<li>(c) 重要性采样：以概率 $p_i \propto |\nabla f_i(x)|$ 采样</li>
+</ul>
+<p><em>提示</em>：计算每种方法的梯度估计方差。</p>
+<details>
+<summary>答案</summary>
+<p>(a) 均匀采样方差：$\text{Var}[g] = \frac{1}{n}\sum_{i=1}^n |\nabla f_i - \nabla f|^2$</p>
+<p>(b) 随机排列在一个epoch内方差为0（每个样本恰好用一次）。</p>
+<p>(c) 重要性采样：选择 $p_i = \frac{|\nabla f_i|}{\sum_j |\nabla f_j|}$，
+估计器 $g = \frac{1}{np_i}\nabla f_i$ 无偏，但方差可能更大。
+最优采样概率需要考虑梯度相似度。</p>
+</details>
+<p><strong>习题1.6</strong> （自适应学习率）Adam优化器维护一阶和二阶矩的指数移动平均：
+$$m_t = \beta_1 m_{t-1} + (1-\beta_1)g_t$$
+$$v_t = \beta_2 v_{t-1} + (1-\beta_2)g_t^2$$</p>
+<ul>
+<li>(a) 为什么需要偏差修正 $\hat{m}_t = m_t/(1-\beta_1^t)$？</li>
+<li>(b) 证明当梯度稀疏时，Adam的有效学习率自动增大</li>
+<li>(c) Adam在什么情况下可能不收敛？</li>
+</ul>
+<p><em>提示</em>：分析初始化偏差和稀疏梯度的影响。</p>
+<details>
+<summary>答案</summary>
+<p>(a) 初始 $m_0 = 0$，导致 $\mathbb{E}[m_t] = (1-\beta_1^t)\mathbb{E}[g]$。
+偏差修正使估计无偏：$\mathbb{E}[\hat{m}_t] = \mathbb{E}[g]$。</p>
+<p>(b) 稀疏梯度时，$v_t$ 对非零梯度累积慢，导致 $\sqrt{v_t}$ 小，
+有效学习率 $\eta/\sqrt{v_t + \epsilon}$ 增大。</p>
+<p>(c) Reddi等人证明Adam在某些非凸问题上可能发散。
+反例：交替的梯度模式可能导致二阶矩估计过小。
+解决方案：AMSGrad保持 $v_t$ 的最大值。</p>
+</details>
+<p><strong>习题1.7</strong> （思考题）现代大语言模型使用的优化技巧中，哪些违背了传统优化理论？为什么它们在实践中仍然有效？讨论以下现象：</p>
+<ul>
+<li>使用远大于理论上限的学习率</li>
+<li>在非凸问题上不追求全局最优</li>
+<li>过参数化模型的隐式正则化</li>
+</ul>
+<p><em>提示</em>：考虑高维空间的几何性质和神经网络的特殊结构。</p>
+<details>
+<summary>答案</summary>
+<p>这是一个开放性问题，关键观察包括：</p>
+<ol>
+<li>
+<p><strong>大学习率</strong>：神经网络的损失景观在大部分区域相对平坦，噪声帮助逃离sharp minima，提高泛化。</p>
+</li>
+<li>
+<p><strong>局部最优</strong>：高维空间中，大部分局部最优的性能相近（"Anna Karenina原理"）。网络宽度足够时，局部最优接近全局最优。</p>
+</li>
+<li>
+<p><strong>过参数化</strong>：
+   - 梯度下降的隐式偏好：倾向于找到范数小的解
+   - 神经切线核（NTK）理论：宽网络近似线性
+   - 双下降现象：过参数化后测试误差再次下降</p>
+</li>
+</ol>
+<p>这些现象表明，深度学习的成功部分源于问题的特殊结构，而非单纯的优化技术。</p>
+</details>
+<h2 id="_9">常见陷阱与错误</h2>
+<p>在实际应用优化算法时，即使是经验丰富的从业者也容易犯以下错误：</p>
+<h3 id="1_1">1. 学习率设置不当</h3>
+<p><strong>错误表现</strong>：</p>
+<ul>
+<li>学习率过大：损失值爆炸（NaN）或剧烈振荡</li>
+<li>学习率过小：训练极慢，容易陷入局部最优</li>
+</ul>
+<p><strong>调试技巧</strong>：</p>
+<div class="codehilite"><pre><span></span><code>监控指标：
+
+- 损失曲线斜率
+- 梯度范数 ||∇L||
+- 参数更新比例 ||Δθ||/||θ||
+</code></pre></div>
+
+<p><strong>经验法则</strong>：参数更新比例应在1e-3到1e-2之间。</p>
+<h3 id="2">2. 梯度消失与爆炸</h3>
+<p><strong>识别方法</strong>：</p>
+<ul>
+<li>梯度消失：深层梯度范数接近0</li>
+<li>梯度爆炸：梯度范数突然增大到1e3以上</li>
+</ul>
+<p><strong>解决方案</strong>：</p>
+<ul>
+<li>梯度裁剪：<code>clip_grad_norm_(parameters, max_norm=1.0)</code></li>
+<li>更好的初始化：Xavier/He初始化</li>
+<li>批归一化或层归一化</li>
+<li>残差连接</li>
+</ul>
+<h3 id="3">3. 批量大小的误区</h3>
+<p><strong>常见错误</strong>：</p>
+<ul>
+<li>认为批量越大越好（实际上大批量可能损害泛化）</li>
+<li>改变批量大小后不调整学习率</li>
+</ul>
+<p><strong>正确做法</strong>：</p>
+<ul>
+<li>线性缩放规则：批量大小翻倍，学习率也翻倍</li>
+<li>但要注意warmup：大批量需要学习率预热</li>
+</ul>
+<h3 id="4">4. 优化器选择不当</h3>
+<p><strong>典型场景与推荐</strong>：
+| 场景 | 错误选择 | 正确选择 | 原因 |</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>错误选择</th>
+<th>正确选择</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>稀疏数据</td>
+<td>SGD</td>
+<td>Adam/AdaGrad</td>
+<td>需要自适应学习率</td>
+</tr>
+<tr>
+<td>噪声数据</td>
+<td>Adam</td>
+<td>SGD+动量</td>
+<td>Adam可能过拟合噪声</td>
+</tr>
+<tr>
+<td>微调</td>
+<td>大学习率Adam</td>
+<td>小学习率SGD</td>
+<td>防止灾难性遗忘</td>
+</tr>
+</tbody>
+</table>
+<h3 id="5">5. 过早停止或过度训练</h3>
+<p><strong>判断标准</strong>：</p>
+<ul>
+<li>验证损失不再下降（连续5-10个epoch）</li>
+<li>验证损失开始上升（过拟合）</li>
+<li>梯度范数持续小于阈值</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>保存验证损失最低的模型</li>
+<li>使用早停（early stopping）但要有耐心参数</li>
+<li>学习率衰减后继续训练几个epoch</li>
+</ul>
+<h3 id="6">6. 数值稳定性问题</h3>
+<p><strong>常见问题</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 错误：直接计算softmax</span>
+<span class="n">exp_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">softmax</span> <span class="o">=</span> <span class="n">exp_x</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">exp_x</span><span class="p">)</span>  <span class="c1"># 可能溢出</span>
+
+<span class="c1"># 正确：减去最大值</span>
+<span class="n">x_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">exp_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_max</span><span class="p">)</span>
+<span class="n">softmax</span> <span class="o">=</span> <span class="n">exp_x</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">exp_x</span><span class="p">)</span>
+</code></pre></div>
+
+<h3 id="7">7. 随机种子的忽视</h3>
+<p><strong>问题</strong>：结果不可重现，难以调试。</p>
+<p><strong>解决</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 固定所有随机种子</span>
+<span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</code></pre></div>
+
+<h3 id="8">8. 梯度累积的错误实现</h3>
+<p><strong>常见错误</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 错误：忘记规范化</span>
+<span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">mini_batches</span><span class="p">:</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">compute_loss</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>  <span class="c1"># 梯度会越累积越大</span>
+
+<span class="c1"># 正确：除以累积步数</span>
+<span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">mini_batches</span><span class="p">:</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">compute_loss</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">/</span> <span class="n">accumulation_steps</span>
+    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</code></pre></div>
+
+<h3 id="9">9. 学习率调度器的误用</h3>
+<p><strong>问题</strong>：</p>
+<ul>
+<li>在错误的位置调用scheduler.step()</li>
+<li>多个调度器冲突</li>
+<li>warmup设置不合理</li>
+</ul>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li>每个epoch结束后调用scheduler</li>
+<li>Warmup步数 = 总步数的1-5%</li>
+<li>记录学习率变化用于调试</li>
+</ul>
+<h3 id="10">10. 忽视硬件特性</h3>
+<p><strong>效率陷阱</strong>：</p>
+<ul>
+<li>批量大小不是8的倍数（Tensor Core利用率低）</li>
+<li>梯度同步频率过高（分布式训练）</li>
+<li>混合精度训练未开启自动混合精度（AMP）</li>
+</ul>
+<p><strong>调试建议总结</strong>：</p>
+<ol>
+<li><strong>建立基线</strong>：先用小数据集验证算法正确性</li>
+<li><strong>逐步增加复杂度</strong>：简单模型 → 复杂模型</li>
+<li><strong>可视化一切</strong>：损失曲线、梯度分布、参数分布</li>
+<li><strong>版本控制</strong>：记录每次实验的超参数和结果</li>
+<li><strong>单元测试</strong>：测试梯度计算、损失函数等关键组件</li>
+</ol>
+<p>记住：优化问题的调试往往比实现更耗时。保持耐心，系统地排查问题。</p>
+<hr />
+<p><a href="index.html">返回目录</a> | <a href="chapter2.html">下一章：统计学习理论 →</a></p>
+            </article>
+            
+            <nav class="page-nav"><a href="index.html" class="nav-link prev">← 现代人工智能：优化与统计视角</a><a href="chapter2.html" class="nav-link next">第2章：统计学习理论 →</a></nav>
+        </main>
+    </div>
+</body>
+</html>

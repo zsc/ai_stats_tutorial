@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="./">
+    <title>第6章：卷积神经网络</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/highlight.css">
+    <script src="assets/script.js" defer></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: false,
+                packages: {'[+]': ['noerrors', 'ams']}
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            loader: {
+                load: ['[tex]/noerrors', '[tex]/ams']
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>目录</h3>
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            <div class="sidebar-search">
+                <input type="text" id="sidebar-search-input" placeholder="搜索..." autocomplete="off">
+            </div>
+            <div id="tree-container">
+                <nav class="tree-nav" role="tree">
+                    <div class="tree-item " >
+                        <a href="index.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">现代人工智能：优化与统计视角</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter1.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第1章：优化基础与梯度下降</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter2.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第2章：统计学习理论</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter3.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第3章：线性模型与正则化</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter4.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第4章：神经网络基础</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter5.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第5章：深度学习优化</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item active" >
+                        <a href="chapter6.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第6章：卷积神经网络</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter7.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第7章：循环神经网络与序列建模</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter8.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第8章：Transformer与注意力机制</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter9.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第9章：大语言模型</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter10.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第10章：变分自编码器与生成建模</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter11.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第11章：扩散模型</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="chapter12.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">第12章：深度强化学习</span>
+                        </a>
+                    </div>
+                
+                    <div class="tree-item " >
+                        <a href="CLAUDE.html" class="tree-link">
+                            <span class="tree-icon">📄</span>
+                            <span class="tree-title">Untitled</span>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+        </nav>
+        
+        <main class="content">
+            <article>
+                <h1 id="6">第6章：卷积神经网络</h1>
+<p>卷积神经网络（CNN）是计算机视觉领域的基石技术，其成功源于对图像数据特性的深刻理解。本章从统计学和优化理论的角度解析CNN的核心概念，包括卷积操作的数学原理、感受野的层次结构、残差连接的优化意义，以及数据增强的统计效果。我们将看到，CNN的每个设计选择都有其深刻的理论基础和实践智慧。</p>
+<h2 id="61">6.1 卷积操作的统计解释</h2>
+<h3 id="611">6.1.1 平移不变性与局部连接</h3>
+<p>卷积神经网络的核心洞察是：图像中的模式（如边缘、纹理）可以出现在任何位置。这种<strong>平移不变性</strong>（translation invariance）是CNN的基础假设。</p>
+<p>从统计学角度看，卷积操作实现了一种参数共享机制：</p>
+<p>$$(\mathbf{f} * \mathbf{g})[i,j] = \sum_{m,n} f[m,n] \cdot g[i-m, j-n]$$
+其中$\mathbf{f}$是输入图像，$\mathbf{g}$是卷积核（滤波器）。</p>
+<p><strong>局部连接</strong>的统计意义：</p>
+<ul>
+<li>全连接层：参数量 $O(H \times W \times H' \times W')$</li>
+<li>卷积层：参数量 $O(K \times K \times C_{in} \times C_{out})$</li>
+</ul>
+<p>其中$K$是卷积核大小，通常$K \ll H, W$。这种参数减少带来两个好处：</p>
+<ol>
+<li><strong>降低过拟合风险</strong>：更少的参数意味着更低的模型复杂度</li>
+<li><strong>提高统计效率</strong>：相同的训练数据可以更好地估计更少的参数</li>
+</ol>
+<h3 id="612">6.1.2 权重共享的统计意义</h3>
+<p>权重共享可以从贝叶斯角度理解为一种强先验：
+$$P(\theta) = \prod_{i,j} \delta(\theta_{i,j} - \theta_{0,0})$$
+这里$\delta$是狄拉克函数，强制所有位置使用相同的权重。这个先验编码了我们对图像的归纳偏置（inductive bias）：</p>
+<ul>
+<li>相同的视觉模式在不同位置应该被同样识别</li>
+<li>学习的特征应该对平移具有等变性（equivariance）</li>
+</ul>
+<p><strong>定理（卷积的等变性）</strong>：
+设$T_{\vec{v}}$为平移算子，则卷积操作满足：
+$$T_{\vec{v}}(\mathbf{f} * \mathbf{g}) = (T_{\vec{v}}\mathbf{f}) * \mathbf{g}$$
+这意味着先平移再卷积等价于先卷积再平移。</p>
+<h3 id="613">6.1.3 卷积核作为特征检测器</h3>
+<p>每个卷积核可以看作一个模板匹配器或特征检测器：</p>
+<div class="codehilite"><pre><span></span><code>边缘检测器（Sobel算子）：
+[-1  0  1]
+[-2  0  2]
+[-1  0  1]
+
+模糊滤波器（高斯核）：
+[1  2  1]
+[2  4  2]  × 1/16
+[1  2  1]
+</code></pre></div>
+
+<p>从频域角度，卷积对应于频率域的乘法（卷积定理）：
+$$\mathcal{F}(\mathbf{f} * \mathbf{g}) = \mathcal{F}(\mathbf{f}) \cdot \mathcal{F}(\mathbf{g})$$
+这解释了为什么某些卷积核可以作为高通或低通滤波器。</p>
+<p><strong>Rule of Thumb</strong>：</p>
+<ul>
+<li>小卷积核（3×3）捕获细节特征，计算效率高</li>
+<li>大卷积核（5×5, 7×7）捕获更大范围的模式，但参数量增加</li>
+<li>现代架构倾向于堆叠多个3×3卷积来模拟大卷积核的效果</li>
+</ul>
+<h2 id="62">6.2 感受野与特征层次</h2>
+<h3 id="621">6.2.1 感受野的计算</h3>
+<p>感受野（Receptive Field）定义了输出特征图中每个神经元"看到"的输入区域大小。</p>
+<p><strong>递归计算公式</strong>：
+$$RF_{l} = RF_{l-1} + (K_l - 1) \times \prod_{i=1}^{l-1} S_i$$
+其中：</p>
+<ul>
+<li>$RF_l$：第$l$层的感受野大小</li>
+<li>$K_l$：第$l$层的卷积核大小</li>
+<li>$S_i$：第$i$层的步长（stride）</li>
+</ul>
+<p><strong>示例计算</strong>：</p>
+<div class="codehilite"><pre><span></span><code>层次结构：
+Input → Conv3×3,S1 → Conv3×3,S1 → Pool2×2,S2 → Conv3×3,S1
+
+感受野计算：
+Layer 1: RF = 3
+Layer 2: RF = 3 + (3-1)×1 = 5
+Layer 3: RF = 5 + (2-1)×1 = 6 (池化)
+Layer 4: RF = 6 + (3-1)×2 = 10
+</code></pre></div>
+
+<h3 id="622">6.2.2 层次特征表示</h3>
+<p>CNN通过层次结构学习从低级到高级的特征表示：</p>
+<div class="codehilite"><pre><span></span><code>特征层次示意图：
+Layer 1: 边缘、角点     [━ ┃ ╱ ╲]
+Layer 2: 纹理、部件     [▓▓ ░░ ╬╬]
+Layer 3: 物体部分       [眼睛 鼻子 轮子]
+Layer 4: 完整物体       [人脸 汽车 建筑]
+</code></pre></div>
+
+<p>这种层次结构符合人类视觉系统的组织原理（Hubel &amp; Wiesel的发现）。</p>
+<p><strong>信息论视角</strong>：
+每一层提取的特征可以看作对输入信息的压缩编码：</p>
+<ul>
+<li>低层：保留空间细节，压缩颜色维度</li>
+<li>中层：压缩局部冗余，保留纹理模式</li>
+<li>高层：压缩空间信息，保留语义内容</li>
+</ul>
+<h3 id="623">6.2.3 池化操作的作用</h3>
+<p>池化（Pooling）操作提供了三个关键功能：</p>
+<ol>
+<li><strong>降维</strong>：减少特征图大小，降低计算量</li>
+<li><strong>平移不变性</strong>：小范围内的平移不影响池化结果</li>
+<li><strong>特征选择</strong>：最大池化选择最显著的特征</li>
+</ol>
+<p><strong>最大池化 vs 平均池化</strong>：</p>
+<ul>
+<li>最大池化：$y = \max_{(i,j) \in \mathcal{R}} x_{i,j}$</li>
+<li>优点：保留最强响应，适合特征检测</li>
+<li>
+<p>缺点：梯度稀疏，只有最大值位置有梯度</p>
+</li>
+<li>
+<p>平均池化：$y = \frac{1}{|\mathcal{R}|} \sum_{(i,j) \in \mathcal{R}} x_{i,j}$</p>
+</li>
+<li>优点：梯度流动更平滑</li>
+<li>缺点：可能模糊重要特征</li>
+</ul>
+<p><strong>Rule of Thumb</strong>：</p>
+<ul>
+<li>特征提取阶段：使用最大池化</li>
+<li>全局池化（分类前）：使用平均池化</li>
+<li>现代架构趋势：用步长&gt;1的卷积替代池化</li>
+</ul>
+<h2 id="63">6.3 残差连接与深度</h2>
+<h3 id="631">6.3.1 深度网络的退化问题</h3>
+<p>理论上，更深的网络应该至少与浅层网络性能相当（深层网络可以学习恒等映射）。但实践中观察到<strong>退化问题</strong>（degradation problem）：</p>
+<div class="codehilite"><pre><span></span><code>训练误差随深度变化：
+深度:    20层  32层  44层  56层
+训练误差: 10%   12%   15%   18%  ← 退化！
+</code></pre></div>
+
+<p>这不是过拟合（训练误差也增加），而是优化困难。</p>
+<p><strong>梯度视角的解释</strong>：
+考虑$L$层网络的梯度：
+$$\frac{\partial \mathcal{L}}{\partial \mathbf{x}_0} = \frac{\partial \mathcal{L}}{\partial \mathbf{x}_L} \prod_{l=1}^{L} \frac{\partial \mathbf{x}_l}{\partial \mathbf{x}_{l-1}}$$
+当$L$很大时：</p>
+<ul>
+<li>若$|\frac{\partial \mathbf{x}_l}{\partial \mathbf{x}_{l-1}}| &lt; 1$：梯度消失</li>
+<li>若$|\frac{\partial \mathbf{x}_l}{\partial \mathbf{x}_{l-1}}| &gt; 1$：梯度爆炸</li>
+</ul>
+<h3 id="632-resnet">6.3.2 ResNet的恒等映射</h3>
+<p>残差网络（ResNet）通过学习残差函数解决退化问题：
+$$\mathbf{y} = \mathcal{F}(\mathbf{x}, \{\mathbf{W}_i\}) + \mathbf{x}$$
+其中$\mathcal{F}$是要学习的残差映射。</p>
+<p><strong>为什么残差学习更容易？</strong></p>
+<p>从优化角度：</p>
+<ol>
+<li><strong>恒等映射的简单性</strong>：当$\mathcal{F} = 0$时，自动实现恒等映射</li>
+<li><strong>梯度高速公路</strong>：
+$$\frac{\partial \mathbf{y}}{\partial \mathbf{x}} = \frac{\partial \mathcal{F}}{\partial \mathbf{x}} + \mathbf{I}$$
+即使$\frac{\partial \mathcal{F}}{\partial \mathbf{x}} \approx 0$，梯度仍可通过恒等项传播</li>
+</ol>
+<p>从统计角度：</p>
+<ul>
+<li>假设最优函数更接近恒等映射而非零映射</li>
+<li>学习小的残差比学习完整映射更容易</li>
+</ul>
+<h3 id="633">6.3.3 残差学习的优化视角</h3>
+<p><strong>定理（残差网络的表达能力）</strong>：
+任何浅层网络可以被相同宽度的残差网络表示，反之不成立。</p>
+<p>证明思路：设置某些残差块为零，其余学习所需函数。</p>
+<p><strong>残差网络作为集成学习</strong>：
+残差网络可以看作指数级数量的浅层网络的集成：</p>
+<div class="codehilite"><pre><span></span><code><span class="mf">3</span><span class="n">层残差网络的路径</span><span class="err">：</span>
+<span class="kr">Input</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Block1</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Block2</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Block3</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">Output</span>
+<span class="w">      </span><span class="err">↘</span><span class="w">        </span><span class="err">↘</span><span class="w">        </span><span class="err">↘</span>
+<span class="w">       </span><span class="err">→</span><span class="w">  </span><span class="err">→</span><span class="w">  </span><span class="err">→</span><span class="w">  </span><span class="err">→</span><span class="w">  </span><span class="err">→</span><span class="w">  </span><span class="err">→</span><span class="w">  </span><span class="err">→</span><span class="w"> </span><span class="p">(</span><span class="n">跳过连接</span><span class="p">)</span>
+
+<span class="n">总路径数</span><span class="err">：</span><span class="mf">2</span><span class="o">^</span><span class="mf">3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">8</span><span class="n">条</span>
+</code></pre></div>
+
+<p>删除一个残差块只影响部分路径，而非整个网络。</p>
+<p><strong>Rule of Thumb</strong>：</p>
+<ul>
+<li>浅层网络（&lt;20层）：残差连接可选</li>
+<li>中等深度（20-100层）：强烈推荐残差连接</li>
+<li>极深网络（&gt;100层）：必须使用残差或类似技术</li>
+<li>残差块设计：通常3×3卷积的两层或三层组合</li>
+</ul>
+<h2 id="64">6.4 数据增强策略</h2>
+<h3 id="641">6.4.1 几何变换</h3>
+<p>几何变换通过修改图像的空间结构来增加数据多样性：</p>
+<p><strong>常用几何变换</strong>：</p>
+<ol>
+<li>
+<p><strong>随机裁剪</strong>（Random Cropping）：
+   - 训练：随机裁剪224×224
+   - 测试：中心裁剪或多裁剪平均</p>
+</li>
+<li>
+<p><strong>随机翻转</strong>（Random Flipping）：
+   - 水平翻转：$p_{flip} = 0.5$
+   - 垂直翻转：仅适用特定场景（如卫星图像）</p>
+</li>
+<li>
+<p><strong>随机旋转</strong>（Random Rotation）：
+   - 小角度：$\theta \in [-15°, 15°]$
+   - 注意：旋转可能引入背景像素</p>
+</li>
+<li>
+<p><strong>仿射变换</strong>：
+$$\begin{bmatrix} x' \\ y' \end{bmatrix} = \begin{bmatrix} a &amp; b \\ c &amp; d \end{bmatrix} \begin{bmatrix} x \\ y \end{bmatrix} + \begin{bmatrix} e \\ f \end{bmatrix}$$
+<strong>统计效果</strong>：
+几何变换相当于在函数空间中扩展训练集：
+$$\mathcal{D}_{aug} = \{(T_g(\mathbf{x}_i), y_i) | (\mathbf{x}_i, y_i) \in \mathcal{D}, g \in G\}$$
+其中$G$是变换群。这增加了有效样本量，降低了泛化误差。</p>
+</li>
+</ol>
+<h3 id="642">6.4.2 颜色变换</h3>
+<p>颜色变换模拟光照和色彩的自然变化：</p>
+<p><strong>主要方法</strong>：</p>
+<ol>
+<li><strong>亮度调整</strong>：$\mathbf{x}' = \mathbf{x} + \Delta_b, \Delta_b \sim U[-0.2, 0.2]$</li>
+<li><strong>对比度调整</strong>：$\mathbf{x}' = \alpha \cdot (\mathbf{x} - \mu) + \mu, \alpha \sim U[0.8, 1.2]$</li>
+<li><strong>饱和度调整</strong>：在HSV空间调整S通道</li>
+<li><strong>色相偏移</strong>：在HSV空间旋转H通道</li>
+</ol>
+<p><strong>PCA颜色增强</strong>（AlexNet）：</p>
+<ol>
+<li>计算训练集RGB像素的协方差矩阵</li>
+<li>进行PCA分解：$\mathbf{C} = \mathbf{P}\mathbf{\Lambda}\mathbf{P}^T$</li>
+<li>添加主成分扰动：
+$$\mathbf{x}' = \mathbf{x} + \mathbf{P}[\alpha_1\lambda_1, \alpha_2\lambda_2, \alpha_3\lambda_3]^T$$
+其中$\alpha_i \sim \mathcal{N}(0, 0.1)$</li>
+</ol>
+<h3 id="643">6.4.3 混合增强技术</h3>
+<p>现代数据增强技术通过混合多个样本创造新的训练数据：</p>
+<p><strong>Mixup</strong>：
+$$\tilde{\mathbf{x}} = \lambda \mathbf{x}_i + (1-\lambda) \mathbf{x}_j$$
+$$\tilde{y} = \lambda y_i + (1-\lambda) y_j$$
+其中$\lambda \sim \text{Beta}(\alpha, \alpha)$，通常$\alpha = 0.2$。</p>
+<p><strong>CutMix</strong>：
+$$\tilde{\mathbf{x}} = \mathbf{M} \odot \mathbf{x}_i + (1-\mathbf{M}) \odot \mathbf{x}_j$$
+$$\tilde{y} = \lambda y_i + (1-\lambda) y_j$$
+其中$\mathbf{M}$是二值掩码，$\lambda$是掩码面积比例。</p>
+<p><strong>理论解释</strong>：
+这些方法实现了训练数据的凸组合，扩展了决策边界的平滑性：</p>
+<ul>
+<li>降低了对抗样本的敏感性</li>
+<li>改善了模型的校准性（calibration）</li>
+<li>提供了隐式的正则化效果</li>
+</ul>
+<p><strong>Rule of Thumb</strong>：</p>
+<ul>
+<li>基础增强：几何变换 + 颜色变换</li>
+<li>小数据集：激进增强（AutoAugment）</li>
+<li>大数据集：温和增强即可</li>
+<li>细粒度分类：避免过度裁剪</li>
+<li>医疗图像：谨慎使用颜色变换</li>
+</ul>
+<h2 id="yann-lecunlenet">历史人物：杨立昆（Yann LeCun）与LeNet的手写识别突破</h2>
+<p>杨立昆在1989年提出的LeNet是第一个成功的卷积神经网络，在手写数字识别上取得了突破性成果。LeNet的设计体现了多个关键创新：</p>
+<p><strong>LeNet的架构创新</strong>：</p>
+<ol>
+<li><strong>卷积层与池化层交替</strong>：建立特征层次</li>
+<li><strong>共享权重</strong>：大幅减少参数量</li>
+<li><strong>端到端学习</strong>：直接从像素到类别</li>
+</ol>
+<p>LeNet-5的完整架构：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">输入</span><span class="p">(</span><span class="mi">32</span><span class="err">×</span><span class="mi">32</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">C1</span><span class="p">(</span><span class="mi">6@28</span><span class="err">×</span><span class="mi">28</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">S2</span><span class="p">(</span><span class="mi">6@14</span><span class="err">×</span><span class="mi">14</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">C3</span><span class="p">(</span><span class="mi">16@10</span><span class="err">×</span><span class="mi">10</span><span class="p">)</span><span class="w"> </span>
+<span class="err">→</span><span class="w"> </span><span class="n">S4</span><span class="p">(</span><span class="mi">16@5</span><span class="err">×</span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">C5</span><span class="p">(</span><span class="mi">120@1</span><span class="err">×</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">F6</span><span class="p">(</span><span class="mi">84</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">输出</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+</code></pre></div>
+
+<p><strong>历史影响</strong>：</p>
+<ul>
+<li>1990s：广泛应用于银行支票识别</li>
+<li>2000s：因SVM等方法暂时失宠</li>
+<li>2012年：AlexNet复兴了CNN，本质上是更深的LeNet</li>
+</ul>
+<p>杨立昆的关键洞察："视觉皮层的层次结构可以通过反向传播学习。"这一想法在当时极具争议，但最终被证明是正确的。</p>
+<h2 id="vision-transformerllm">现代连接：Vision Transformer与多模态LLM的视觉编码器</h2>
+<h3 id="vision-transformer-vit">Vision Transformer (ViT)</h3>
+<p>2020年提出的ViT挑战了CNN在视觉领域的统治地位：</p>
+<p><strong>核心思想</strong>：
+将图像分割成patches，像处理文本token一样处理图像：</p>
+<div class="codehilite"><pre><span></span><code>图像(224×224) → 196个patches(16×16) → 线性投影 → Transformer
+</code></pre></div>
+
+<p><strong>与CNN的对比</strong>：</p>
+<ul>
+<li>CNN：强归纳偏置（局部性、平移等变性）</li>
+<li>ViT：弱归纳偏置，依赖大规模数据</li>
+</ul>
+<p><strong>混合架构趋势</strong>：</p>
+<ul>
+<li>Swin Transformer：引入局部窗口和层次结构</li>
+<li>ConvNeXt：用CNN模拟Transformer的设计</li>
+</ul>
+<h3 id="llm">多模态LLM中的视觉编码</h3>
+<p>现代多模态大语言模型（如GPT-4V、CLIP）使用视觉编码器处理图像：</p>
+<p><strong>CLIP的对比学习</strong>：</p>
+<div class="codehilite"><pre><span></span><code>图像 → CNN/ViT编码器 → 图像嵌入
+文本 → Transformer编码器 → 文本嵌入
+损失：最大化匹配对的余弦相似度
+</code></pre></div>
+
+<p><strong>视觉-语言对齐</strong>：</p>
+<ol>
+<li><strong>特征对齐</strong>：将视觉特征投影到语言空间</li>
+<li><strong>交叉注意力</strong>：让语言模型"看到"图像</li>
+<li><strong>统一表示</strong>：图像patches作为特殊tokens</li>
+</ol>
+<p><strong>技术要点</strong>：</p>
+<ul>
+<li>冻结预训练视觉编码器，只训练对齐层</li>
+<li>使用大规模图像-文本对进行预训练</li>
+<li>多尺度特征融合提升细节理解</li>
+</ul>
+<p>这种融合展示了CNN特征提取能力在更大系统中的价值。</p>
+<h2 id="_1">本章小结</h2>
+<p><strong>核心概念回顾</strong>：</p>
+<ol>
+<li>
+<p><strong>卷积操作的三大优势</strong>：
+   - 参数共享：$O(K^2C_{in}C_{out})$ vs $O(H×W×H'×W')$
+   - 局部连接：利用图像的局部相关性
+   - 平移等变性：$T(\mathbf{f} * \mathbf{g}) = (T\mathbf{f}) * \mathbf{g}$</p>
+</li>
+<li>
+<p><strong>感受野计算公式</strong>：
+$$RF_l = RF_{l-1} + (K_l - 1) × \prod_{i=1}^{l-1} S_i$$</p>
+</li>
+<li>
+<p><strong>残差学习的核心方程</strong>：
+$$\mathbf{y} = \mathcal{F}(\mathbf{x}, \{\mathbf{W}_i\}) + \mathbf{x}$$
+梯度：$\frac{\partial \mathbf{y}}{\partial \mathbf{x}} = \frac{\partial \mathcal{F}}{\partial \mathbf{x}} + \mathbf{I}$</p>
+</li>
+<li>
+<p><strong>数据增强的统计效果</strong>：
+   - 几何变换：扩展平移/旋转不变性
+   - 颜色变换：增强光照鲁棒性<br />
+   - 混合技术：平滑决策边界</p>
+</li>
+</ol>
+<p><strong>实用建议总结</strong>：</p>
+<ul>
+<li>使用3×3卷积作为基本单元</li>
+<li>深度&gt;20层时必须使用残差连接</li>
+<li>数据增强强度与数据集大小成反比</li>
+<li>现代趋势：CNN与Transformer的混合架构</li>
+</ul>
+<h2 id="_2">常见陷阱与错误</h2>
+<h3 id="1">1. 感受野计算错误</h3>
+<p><strong>错误</strong>：忽略步长的累积效应</p>
+<div class="codehilite"><pre><span></span><code><span class="n">错误</span><span class="err">：</span><span class="n">RF</span> <span class="o">=</span> <span class="n">Σ</span><span class="p">(</span><span class="n">K_i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="n">正确</span><span class="err">：</span><span class="n">需要考虑之前层的步长累积</span>
+</code></pre></div>
+
+<h3 id="2">2. 填充方式不当</h3>
+<p><strong>问题</strong>：零填充在某些任务中引入伪影
+<strong>解决</strong>：</p>
+<ul>
+<li>使用反射填充：<code>[c b a | a b c d | d c b]</code></li>
+<li>使用复制填充：<code>[a a a | a b c d | d d d]</code></li>
+</ul>
+<h3 id="3">3. 批归一化位置错误</h3>
+<p><strong>错误顺序</strong>：Conv → BN → Activation → Dropout
+<strong>正确顺序</strong>：Conv → BN → Activation（Dropout通常不与BN同时使用）</p>
+<h3 id="4">4. 数据增强的测试时不一致</h3>
+<p><strong>错误</strong>：测试时使用训练时的随机增强
+<strong>正确</strong>：测试时使用确定性变换（如中心裁剪）或测试时增强（TTA）取平均</p>
+<h3 id="5">5. 残差连接的维度不匹配</h3>
+<p><strong>问题</strong>：当通道数改变时无法直接相加
+<strong>解决</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="n">in_channels</span> <span class="o">!=</span> <span class="n">out_channels</span><span class="p">:</span>
+    <span class="n">shortcut</span> <span class="o">=</span> <span class="n">Conv1</span><span class="err">×</span><span class="mi">1</span><span class="p">(</span><span class="n">in_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">shortcut</span> <span class="o">=</span> <span class="n">Identity</span><span class="p">()</span>
+</code></pre></div>
+
+<h3 id="6_1">6. 过度依赖深度</h3>
+<p><strong>误区</strong>：网络越深越好
+<strong>实际</strong>：</p>
+<ul>
+<li>宽度（通道数）同样重要</li>
+<li>EfficientNet证明了宽度、深度、分辨率的平衡</li>
+<li>对于小数据集，浅层宽网络可能更好</li>
+</ul>
+<h2 id="_3">练习题</h2>
+<h3 id="_4">基础题</h3>
+<p><strong>习题6.1</strong>：计算下列网络结构的感受野大小：
+Conv3×3(stride=1) → Conv3×3(stride=1) → MaxPool2×2(stride=2) → Conv3×3(stride=1)</p>
+<details>
+<summary>提示</summary>
+<p>逐层应用感受野计算公式，注意池化层的处理。</p>
+</details>
+<details>
+<summary>答案</summary>
+<p>逐层计算：</p>
+<ul>
+<li>Layer 1 (Conv3×3, s=1): RF = 3</li>
+<li>Layer 2 (Conv3×3, s=1): RF = 3 + (3-1)×1 = 5  </li>
+<li>Layer 3 (MaxPool2×2, s=2): RF = 5 + (2-1)×1 = 6</li>
+<li>Layer 4 (Conv3×3, s=1): RF = 6 + (3-1)×2 = 10</li>
+</ul>
+<p>最终感受野：10×10</p>
+</details>
+<p><strong>习题6.2</strong>：一个输入尺寸为224×224×3的图像，经过Conv(64, kernel=7, stride=2, padding=3)后，输出尺寸是多少？参数量是多少？</p>
+<details>
+<summary>提示</summary>
+<p>输出尺寸公式：$\lfloor \frac{W + 2P - K}{S} \rfloor + 1$</p>
+</details>
+<details>
+<summary>答案</summary>
+<p>输出尺寸：</p>
+<ul>
+<li>$H_{out} = \lfloor \frac{224 + 2×3 - 7}{2} \rfloor + 1 = 112$</li>
+<li>$W_{out} = 112$</li>
+<li>输出：112×112×64</li>
+</ul>
+<p>参数量：</p>
+<ul>
+<li>权重：7×7×3×64 = 9,408</li>
+<li>偏置：64</li>
+<li>总计：9,472参数</li>
+</ul>
+</details>
+<p><strong>习题6.3</strong>：解释为什么两个3×3卷积的叠加可以替代一个5×5卷积？这样做的优缺点是什么？</p>
+<details>
+<summary>提示</summary>
+<p>考虑感受野和参数量的差异。</p>
+</details>
+<details>
+<summary>答案</summary>
+<p><strong>感受野等价性</strong>：</p>
+<ul>
+<li>一个5×5卷积：感受野 = 5</li>
+<li>两个3×3卷积：感受野 = 3 + (3-1) = 5</li>
+</ul>
+<p><strong>优点</strong>：</p>
+<ol>
+<li>参数量更少：2×(3×3×C×C) = 18C² vs 25C²</li>
+<li>更深的非线性：两次激活函数</li>
+<li>计算效率更高（在某些硬件上）</li>
+</ol>
+<p><strong>缺点</strong>：</p>
+<ol>
+<li>需要更多内存存储中间特征图</li>
+<li>可能增加计算延迟（更多层）</li>
+</ol>
+</details>
+<p><strong>习题6.4</strong>：为什么残差连接中的恒等映射路径如此重要？如果将$\mathbf{y} = \mathcal{F}(\mathbf{x}) + \mathbf{x}$改为$\mathbf{y} = \mathcal{F}(\mathbf{x}) + 0.5\mathbf{x}$会发生什么？</p>
+<details>
+<summary>提示</summary>
+<p>考虑反向传播时的梯度流动。</p>
+</details>
+<details>
+<summary>答案</summary>
+<p><strong>恒等映射的重要性</strong>：
+梯度传播：$\frac{\partial \mathbf{y}}{\partial \mathbf{x}} = \frac{\partial \mathcal{F}}{\partial \mathbf{x}} + 1$</p>
+<p>保证梯度至少为1，避免消失。</p>
+<p><strong>如果系数为0.5</strong>：
+$\frac{\partial \mathbf{y}}{\partial \mathbf{x}} = \frac{\partial \mathcal{F}}{\partial \mathbf{x}} + 0.5$</p>
+<p>深度为$L$的网络：梯度衰减因子最坏为$0.5^L$</p>
+<ul>
+<li>10层：$0.5^{10} ≈ 0.001$</li>
+<li>20层：$0.5^{20} ≈ 10^{-6}$</li>
+</ul>
+<p>会导致严重的梯度消失问题。</p>
+</details>
+<h3 id="_5">挑战题</h3>
+<p><strong>习题6.5</strong>：设计一个"反向残差块"（Inverted Residual Block），其中残差连接在低维空间，而非线性变换在高维空间进行。分析这种设计的优缺点。</p>
+<details>
+<summary>提示</summary>
+<p>考虑MobileNetV2的设计思想：在低维manifold上的线性变换。</p>
+</details>
+<details>
+<summary>答案</summary>
+<p><strong>反向残差块设计</strong>：</p>
+<div class="codehilite"><pre><span></span><code>输入(d维) → 扩展(td维) → 深度卷积 → 投影(d维) → 输出
+        ↘                                    ↗
+                    残差连接(d维)
+</code></pre></div>
+
+<p><strong>优点</strong>：</p>
+<ol>
+<li>内存效率：残差连接在低维，节省内存</li>
+<li>信息保护：线性残差路径避免ReLU导致的信息丢失</li>
+<li>计算效率：主要计算在深度可分离卷积</li>
+</ol>
+<p><strong>缺点</strong>：</p>
+<ol>
+<li>表达能力受限于瓶颈维度</li>
+<li>训练初期可能不稳定</li>
+<li>需要仔细调节扩展率t</li>
+</ol>
+<p><strong>理论分析</strong>：
+假设数据位于低维流形上，线性变换保持流形结构，非线性在高维空间增加表达能力。</p>
+</details>
+<p><strong>习题6.6</strong>：证明在没有非线性激活的情况下，多层卷积网络等价于单层卷积。这说明了什么？</p>
+<details>
+<summary>提示</summary>
+<p>利用卷积的结合律。</p>
+</details>
+<details>
+<summary>答案</summary>
+<p><strong>证明</strong>：
+设两层线性卷积：</p>
+<ul>
+<li>第一层：$\mathbf{y}_1 = \mathbf{x} * \mathbf{w}_1$</li>
+<li>第二层：$\mathbf{y}_2 = \mathbf{y}_1 * \mathbf{w}_2$</li>
+</ul>
+<p>由卷积结合律：
+$$\mathbf{y}_2 = (\mathbf{x} * \mathbf{w}_1) * \mathbf{w}_2 = \mathbf{x} * (\mathbf{w}_1 * \mathbf{w}_2)$$
+令$\mathbf{w}_{eq} = \mathbf{w}_1 * \mathbf{w}_2$，则：
+$$\mathbf{y}_2 = \mathbf{x} * \mathbf{w}_{eq}$$
+<strong>意义</strong>：</p>
+<ol>
+<li>非线性激活是深度网络的必要条件</li>
+<li>没有非线性，深度失去意义</li>
+<li>解释了为什么线性激活函数无效</li>
+</ol>
+<p><strong>推广</strong>：
+这也解释了为什么批归一化后必须有可学习的缩放参数，否则会限制网络表达能力。</p>
+</details>
+<p><strong>习题6.7</strong>：分析Mixup数据增强的理论基础。为什么线性插值标签是合理的？这种方法的理论假设是什么？</p>
+<details>
+<summary>提示</summary>
+<p>从风险最小化和决策边界平滑性角度分析。</p>
+</details>
+<details>
+<summary>答案</summary>
+<p><strong>Mixup的形式化</strong>：
+$$\tilde{\mathbf{x}} = \lambda \mathbf{x}_i + (1-\lambda) \mathbf{x}_j$$
+$$\tilde{y} = \lambda y_i + (1-\lambda) y_j$$
+<strong>理论基础</strong>：</p>
+<ol>
+<li>
+<p><strong>邻域风险最小化</strong>（Vicinal Risk Minimization）：
+   - 传统ERM：$\min \mathbb{E}_{(\mathbf{x},y) \sim P}[\mathcal{L}(f(\mathbf{x}), y)]$
+   - VRM：$\min \mathbb{E}_{(\mathbf{x},y) \sim P} \mathbb{E}_{\tilde{\mathbf{x}} \sim \nu(\cdot|\mathbf{x})}[\mathcal{L}(f(\tilde{\mathbf{x}}), y)]$
+   - Mixup定义了特殊的邻域分布$\nu$</p>
+</li>
+<li>
+<p><strong>线性性假设</strong>：
+   - 假设：类别之间的决策边界应该是线性的
+   - Mixup强制模型在样本间的线性路径上预测线性插值的标签
+   - 这导致更平滑的决策边界</p>
+</li>
+<li>
+<p><strong>正则化效果</strong>：
+   Mixup等价于添加正则项：
+$$\mathcal{R}(f) = \mathbb{E}_{\mathbf{x}_i, \mathbf{x}_j, \lambda}[||f(\tilde{\mathbf{x}}) - \tilde{f}(\mathbf{x}_i, \mathbf{x}_j)||^2]$$
+其中$\tilde{f}$是标签的线性插值。</p>
+</li>
+</ol>
+<p><strong>理论假设</strong>：</p>
+<ol>
+<li>特征空间的线性结构有意义</li>
+<li>类别之间存在连续过渡</li>
+<li>模型应该对输入扰动鲁棒</li>
+</ol>
+<p><strong>实证支持</strong>：</p>
+<ul>
+<li>提高对抗鲁棒性</li>
+<li>改善概率校准</li>
+<li>减少过拟合</li>
+<li>在各种任务上一致的提升</li>
+</ul>
+</details>
+<p><strong>习题6.8</strong>（开放性问题）：设计一个自适应感受野机制，使网络能够根据输入内容动态调整感受野大小。讨论可能的实现方案和潜在应用。</p>
+<details>
+<summary>提示</summary>
+<p>考虑可变形卷积、注意力机制、动态网络等方向。</p>
+</details>
+<details>
+<summary>答案</summary>
+<p><strong>方案1：可变形卷积（Deformable Convolution）</strong></p>
+<div class="codehilite"><pre><span></span><code>标准卷积：固定网格采样
+可变形：学习偏移量 → 自适应采样
+offset = Conv(input)  # 预测偏移
+output = DeformConv(input, offset)
+</code></pre></div>
+
+<p>优点：灵活适应物体形状
+缺点：计算开销大，训练不稳定</p>
+<p><strong>方案2：多尺度注意力选择</strong></p>
+<div class="codehilite"><pre><span></span><code>多个分支：3×3, 5×5, 7×7卷积
+注意力权重 = Softmax(FC(GlobalPool(input)))
+输出 = Σ(权重_i × 分支_i)
+</code></pre></div>
+
+<p>优点：离散选择，易于优化
+缺点：内存开销大（多分支）</p>
+<p><strong>方案3：空间金字塔池化（SPP）</strong></p>
+<div class="codehilite"><pre><span></span><code>不同大小的池化区域：1×1, 2×2, 4×4
+自适应选择或加权组合
+</code></pre></div>
+
+<p>优点：对任意输入尺寸鲁棒
+缺点：主要用于全局特征，局部适应性有限</p>
+<p><strong>方案4：动态卷积核</strong></p>
+<div class="codehilite"><pre><span></span><code>kernel = KernelGenerator(input_context)
+output = DynamicConv(input, kernel)
+</code></pre></div>
+
+<p>优点：完全自适应
+缺点：参数生成网络的开销</p>
+<p><strong>潜在应用</strong>：</p>
+<ol>
+<li><strong>目标检测</strong>：大物体需要大感受野，小物体需要小感受野</li>
+<li><strong>图像分割</strong>：边缘需要精细感受野，内部需要大感受野  </li>
+<li><strong>视频理解</strong>：运动区域和静止区域的不同处理</li>
+<li><strong>医疗图像</strong>：病变区域的自适应分析</li>
+</ol>
+<p><strong>理论分析</strong>：
+自适应感受野本质上是学习输入依赖的核函数：
+$$K(\mathbf{x}, \mathbf{x}') = g_{\theta}(\mathbf{x}, \mathbf{x}', \text{context}(\mathbf{x}))$$</p>
+<p>这提供了比固定核更强的表达能力，但也增加了优化难度。</p>
+<p><strong>未来方向</strong>：</p>
+<ul>
+<li>与神经架构搜索（NAS）结合</li>
+<li>硬件加速支持</li>
+<li>理论分析（泛化界）</li>
+<li>与Transformer的统一框架</li>
+</ul>
+</details>
+<hr />
+<p><em>下一章：<a href="chapter7.html">第7章：循环神经网络与序列建模</a></em></p>
+            </article>
+            
+            <nav class="page-nav"><a href="chapter5.html" class="nav-link prev">← 第5章：深度学习优化</a><a href="chapter7.html" class="nav-link next">第7章：循环神经网络与序列建模 →</a></nav>
+        </main>
+    </div>
+</body>
+</html>

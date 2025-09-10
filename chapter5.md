@@ -15,15 +15,30 @@ $$\min_{\theta} \mathcal{L}(\theta) = \frac{1}{N} \sum_{i=1}^{N} \ell(f_\theta(\
 **批量梯度下降（BGD）** 使用全部数据计算梯度：
 $$\theta_{t+1} = \theta_t - \eta \nabla \mathcal{L}(\theta_t)$$
 
-但当 $N$ 很大时，计算成本过高。
+但当 $N$ 很大时，计算成本过高。现代数据集动辄百万甚至十亿样本，单次梯度计算可能需要数小时。
 
 **随机梯度下降（SGD）** 每次只使用一个样本：
 $$\theta_{t+1} = \theta_t - \eta \nabla \ell(f_{\theta_t}(\mathbf{x}_i), y_i)$$
+
+这带来了一个关键洞察：随机梯度虽然有噪声，但其期望值等于真实梯度。这种噪声反而有助于逃离局部最小值和鞍点。
 
 **小批量SGD（Mini-batch SGD）** 是实践中的标准做法：
 $$\theta_{t+1} = \theta_t - \eta \frac{1}{B} \sum_{i \in \mathcal{B}_t} \nabla \ell(f_{\theta_t}(\mathbf{x}_i), y_i)$$
 
 其中 $\mathcal{B}_t$ 是大小为 $B$ 的小批量。
+
+**批量大小的权衡**：
+- **计算效率**：现代GPU针对矩阵运算优化，批量计算比单样本快得多
+- **内存限制**：批量越大，需要的GPU内存越多
+- **泛化性能**：适度的批量大小（32-512）通常泛化最好
+- **并行性**：批量内样本可以完全并行计算
+
+从优化轨迹看三种方法的区别：
+```
+BGD:  平滑但缓慢    ═══════════→ (确定性路径)
+SGD:  噪声但快速    ～～～～～→ (高方差路径)  
+Mini: 平衡选择      ≈≈≈≈≈≈≈→ (适度噪声路径)
+```
 
 ### 5.1.2 SGD的统计性质
 
@@ -36,12 +51,31 @@ $$\text{Var}[\nabla \ell(f_{\theta}(\mathbf{x}_i), y_i)] = \sigma^2$$
 小批量可以降低方差：
 $$\text{Var}\left[\frac{1}{B} \sum_{i \in \mathcal{B}} \nabla \ell_i\right] = \frac{\sigma^2}{B}$$
 
+这个方差-批量关系揭示了一个深刻的权衡：
+
+**信噪比（SNR）分析**：
+$$\text{SNR} = \frac{\|\mathbb{E}[\nabla]\|^2}{\text{Var}[\nabla]} = \frac{\|\nabla \mathcal{L}\|^2}{\sigma^2/B} \propto B$$
+
+信噪比随批量大小线性增长，但这并不意味着越大越好。实际上，适度的噪声（小SNR）有助于：
+- **正则化效果**：梯度噪声类似于在损失函数中添加噪声，防止过拟合
+- **探索能力**：帮助逃离平坦区域和鞍点
+- **隐式退火**：训练后期自然降低学习率时，噪声也相应减小
+
+**有效批量大小的概念**：
+当批量大小超过某个临界值 $B_{critical}$ 后，进一步增大批量的收益递减。这个临界值与数据集的内在噪声和模型容量有关：
+$$B_{critical} \approx \frac{\text{数据集大小}}{\text{有效样本多样性}}$$
+
 **经验法则**：
 - 批量大小通常选择2的幂次（32, 64, 128, 256）以利用硬件加速
 - 增大批量大小时，学习率可以线性增加（线性缩放规则）
 - 批量大小存在临界值，超过后收敛性能不再改善
+- 视觉任务：批量256-1024效果好
+- NLP任务：可以使用更大批量（2K-32K）
+- 强化学习：通常需要大批量（>1K）以降低策略梯度方差
 
 ### 5.1.3 动量方法
+
+动量方法的核心思想来自物理学：将优化过程类比为粒子在势能面上的运动。梯度提供加速度，而动量维持速度。
 
 **经典动量（Momentum）**：
 $$\begin{aligned}
@@ -54,9 +88,26 @@ $$\begin{aligned}
 动量方法可以看作是指数移动平均：
 $$\mathbf{v}_t = -\eta \sum_{i=0}^{t} \beta^{t-i} \nabla \mathcal{L}(\theta_i)$$
 
+**物理直觉**：
+- $\beta = 0$：无摩擦，粒子不断加速
+- $\beta = 0.9$：有摩擦，最终达到终端速度
+- $\beta = 0.99$：高摩擦，缓慢加速但稳定
+
+**动量的三大优势**：
+
+1. **加速收敛**：在一致的梯度方向上累积速度
+2. **减少振荡**：在振荡方向上动量相互抵消
+3. **逃离局部最小值**：积累的动量可能越过小的局部障碍
+
 ```
-无动量：  ↗↘↗↘  (振荡)
-有动量：  →→→→  (平滑)
+病态条件下的优化轨迹：
+无动量：  ↗↘↗↘  (沿陡峭方向振荡)
+有动量：  →→→→  (沿平缓方向加速)
+
+在峡谷地形中：
+     ╱╲╱╲╱╲    <- 无动量：之字形下降
+    ╱       ╲   
+   ╱  ────→  ╲  <- 有动量：平滑快速下降
 ```
 
 **Nesterov加速梯度（NAG）**：
@@ -66,6 +117,16 @@ $$\begin{aligned}
 \end{aligned}$$
 
 NAG在计算梯度前先"向前看"，具有更好的理论收敛速度。
+
+**NAG vs 标准动量**：
+- 标准动量：先加速，后修正
+- NAG：预测未来位置，在那里计算梯度
+- 收敛速度：NAG达到 $O(1/t^2)$，标准动量为 $O(1/t)$
+
+**实际使用中的技巧**：
+- 初始阶段使用较小动量（0.5），后期增加到0.9或0.99
+- 学习率衰减时，可以同时增加动量系数
+- 对于RNN，动量可能导致梯度爆炸，需谨慎使用
 
 ### 5.1.4 学习率调度
 
@@ -93,6 +154,8 @@ $$\eta_t = \begin{cases}
 
 ### 5.2.1 AdaGrad：自适应梯度算法
 
+AdaGrad的核心洞察是：不同参数应该有不同的学习率。频繁更新的参数应该用较小学习率，稀疏更新的参数应该用较大学习率。
+
 AdaGrad为每个参数维持独立的学习率：
 $$\begin{aligned}
 \mathbf{g}_t &= \nabla \mathcal{L}(\theta_t) \\
@@ -102,7 +165,23 @@ $$\begin{aligned}
 
 其中 $\odot$ 表示逐元素乘法，$\epsilon$ 是小常数（如 $10^{-8}$）防止除零。
 
-问题：$\mathbf{G}_t$ 单调递增，学习率最终趋于零。
+**自适应机制的解释**：
+- $\mathbf{G}_t$ 累积历史梯度的平方，反映参数的更新频率
+- 对于梯度一直很大的参数，$\mathbf{G}_t$ 快速增长，学习率快速下降
+- 对于梯度稀疏的参数，$\mathbf{G}_t$ 缓慢增长，保持较大学习率
+
+**为什么对稀疏数据有效**：
+在NLP任务中，词嵌入的更新非常稀疏（每个批次只更新出现的词）。AdaGrad能够：
+- 为罕见词维持较大学习率，快速学习
+- 为常见词降低学习率，精细调整
+- 自动实现了类似词频加权的效果
+
+**问题与局限**：
+- **学习率单调递减**：$\mathbf{G}_t$ 只增不减，最终 $\frac{\eta}{\sqrt{\mathbf{G}_t}} \to 0$
+- **对初始学习率敏感**：需要仔细调整 $\eta$
+- **内存需求**：需要存储 $\mathbf{G}_t$，与参数数量相同
+
+理论保证：对于凸函数，AdaGrad的regret bound为 $O(\sqrt{T})$
 
 ### 5.2.2 RMSprop：指数移动平均
 
@@ -117,7 +196,7 @@ $$\begin{aligned}
 
 ### 5.2.3 Adam：自适应矩估计
 
-Adam结合了动量和RMSprop的优点：
+Adam结合了动量和RMSprop的优点，是深度学习中最流行的优化器：
 $$\begin{aligned}
 \mathbf{g}_t &= \nabla \mathcal{L}(\theta_t) \\
 \mathbf{m}_t &= \beta_1 \mathbf{m}_{t-1} + (1-\beta_1) \mathbf{g}_t & \text{(一阶矩估计)} \\
@@ -127,11 +206,40 @@ $$\begin{aligned}
 \theta_{t+1} &= \theta_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t} + \epsilon}
 \end{aligned}$$
 
+**Adam的四个关键创新**：
+
+1. **动量与自适应结合**：$\mathbf{m}_t$ 提供方向，$\mathbf{v}_t$ 调整步长
+2. **偏差修正**：解决初始化时的偏差问题
+3. **二阶矩估计**：比简单的梯度平方更稳定
+4. **逐参数自适应**：每个参数有独立的"学习率"
+
+**偏差修正的必要性**：
+初始时 $\mathbf{m}_0 = \mathbf{v}_0 = 0$，导致：
+$$\mathbb{E}[\mathbf{m}_t] = (1-\beta_1^t)\mathbb{E}[\mathbf{g}] \neq \mathbb{E}[\mathbf{g}]$$
+
+偏差修正确保：
+$$\mathbb{E}[\hat{\mathbf{m}}_t] = \mathbb{E}[\mathbf{g}]$$
+
+**有效学习率的理解**：
+Adam的每个参数的有效学习率为：
+$$\eta_{effective} = \eta \cdot \frac{1}{\sqrt{\hat{\mathbf{v}}_t} + \epsilon}$$
+
+这意味着：
+- 梯度持续大的参数：学习率自动降低
+- 梯度稀疏的参数：保持较大学习率
+- 梯度方向变化频繁的参数：学习率降低（$\mathbf{v}_t$ 增大）
+
 **默认超参数**：
 - $\beta_1 = 0.9$（动量系数）
 - $\beta_2 = 0.999$（二阶矩衰减率）
 - $\eta = 0.001$（学习率）
 - $\epsilon = 10^{-8}$
+
+**超参数敏感性分析**：
+- $\beta_1$：控制动量，0.9适用于大多数任务，0.8用于噪声数据
+- $\beta_2$：控制自适应性，0.999标准，0.99用于更激进的适应
+- $\eta$：比SGD的学习率小10倍左右
+- $\epsilon$：通常不需要调整，但在梯度非常小时可增大到 $10^{-4}$
 
 ### 5.2.4 Adam的变体
 
@@ -155,9 +263,32 @@ $$\theta_{t+1} = \theta_t - \eta \left(\frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mat
 
 深度网络训练中，每层输入的分布随着前层参数更新而改变，这种现象称为内部协变量偏移（Internal Covariate Shift）。
 
+**问题的本质**：
+考虑一个深度网络的第 $l$ 层，其输入 $\mathbf{x}^{(l)}$ 依赖于所有前层参数：
+$$\mathbf{x}^{(l)} = f_{l-1}(f_{l-2}(...f_1(\mathbf{x}^{(0)})))$$
+
+当前层参数更新时，后层看到的输入分布持续变化：
+- 每层需要不断适应新的输入分布
+- 降低了学习效率
+- 限制了可用的学习率（避免激活值爆炸）
+
+**数学表述**：
+设第 $l$ 层在时刻 $t$ 的输入分布为 $p_t(\mathbf{x}^{(l)})$，则：
+$$D_{KL}(p_t(\mathbf{x}^{(l)}) \| p_{t+1}(\mathbf{x}^{(l)})) > 0$$
+
+这种分布偏移导致：
+1. **梯度消失/爆炸**：激活值进入饱和区
+2. **学习率限制**：需要小心控制更新幅度
+3. **收敛缓慢**：每层都在"追赶"变化的目标
+
+**传统解决方案的局限**：
+- **careful initialization**：只在初始时有效
+- **小学习率**：训练缓慢
+- **特殊激活函数**：如ReLU，但不完全解决问题
+
 ### 5.3.2 批归一化（Batch Normalization）
 
-批归一化通过标准化激活值来稳定训练：
+批归一化通过标准化激活值来稳定训练，是深度学习的重大突破之一：
 
 **训练时**：
 $$\begin{aligned}
@@ -169,9 +300,48 @@ $$\begin{aligned}
 
 其中 $\gamma$ 和 $\beta$ 是可学习的缩放和偏移参数。
 
+**为什么需要 $\gamma$ 和 $\beta$**：
+- 标准化可能限制网络的表达能力
+- $\gamma$ 和 $\beta$ 恢复表达能力
+- 如果最优解需要恒等变换：$\gamma = \sqrt{\sigma_B^2}$, $\beta = \mu_B$
+
 **推理时**：
 使用训练时的移动平均统计量：
 $$\hat{\mathbf{x}} = \frac{\mathbf{x} - \mu_{running}}{\sqrt{\sigma_{running}^2 + \epsilon}}$$
+
+移动平均更新：
+$$\begin{aligned}
+\mu_{running} &= (1-\alpha) \mu_{running} + \alpha \mu_B \\
+\sigma_{running}^2 &= (1-\alpha) \sigma_{running}^2 + \alpha \sigma_B^2
+\end{aligned}$$
+其中 $\alpha$ 通常为0.1。
+
+**批归一化的多重效应**：
+
+1. **平滑损失曲面**：使优化更容易
+   - 减少了参数间的相互依赖
+   - 使Hessian矩阵条件数改善
+   
+2. **正则化效果**：由于批统计的随机性
+   - 每个样本看到的是批内其他样本的"噪声"统计
+   - 类似于dropout的随机性
+   
+3. **允许更大学习率**：
+   - 防止激活值爆炸
+   - 梯度更稳定
+
+4. **减少对初始化的敏感性**：
+   - 即使初始化不当，也能快速调整到合理范围
+
+**放置位置的最佳实践**：
+```
+方案1（原始）: Conv → BN → ReLU
+方案2（推荐）: Conv → ReLU → BN
+方案3（ResNet）: Conv → BN → ReLU → Conv → BN → Add
+```
+
+**批归一化的计算图影响**：
+BN使得每个样本的梯度依赖于整个批次，这带来了独特的动力学特性。
 
 ### 5.3.3 层归一化（Layer Normalization）
 
@@ -222,14 +392,43 @@ $$\text{RMSNorm}(\mathbf{x}) = \frac{\mathbf{x}}{\text{RMS}(\mathbf{x})} \cdot \
 
 ### 5.4.1 牛顿法与拟牛顿法
 
+二阶优化方法利用曲率信息加速收敛。虽然在大规模深度学习中计算成本高昂，但其思想影响了许多实用算法。
+
 **牛顿法**使用Hessian矩阵（二阶导数）：
 $$\theta_{t+1} = \theta_t - \eta \mathbf{H}^{-1} \nabla \mathcal{L}(\theta_t)$$
 
 其中 $\mathbf{H} = \nabla^2 \mathcal{L}(\theta)$ 是Hessian矩阵。
 
-问题：
-- 计算Hessian需要 $O(n^2)$ 存储和 $O(n^3)$ 计算
-- Hessian可能不正定，导致更新方向错误
+**几何解释**：
+- 一阶方法（SGD）：假设局部是线性的
+- 二阶方法（牛顿）：假设局部是二次的
+
+牛顿法的更新可以理解为在二次近似下的最优步：
+$$\mathcal{L}(\theta + \Delta) \approx \mathcal{L}(\theta) + \nabla \mathcal{L}^T \Delta + \frac{1}{2} \Delta^T \mathbf{H} \Delta$$
+
+最小化右侧得到：$\Delta^* = -\mathbf{H}^{-1} \nabla \mathcal{L}$
+
+**牛顿法的优势**：
+- **尺度不变性**：对参数重新缩放不敏感
+- **二次收敛**：在最优点附近收敛极快
+- **自适应步长**：自动考虑不同方向的曲率
+
+**实际问题**：
+- **计算复杂度**：计算Hessian需要 $O(n^2)$ 存储和 $O(n^3)$ 求逆
+- **Hessian不正定**：非凸区域可能导致上升方向
+- **噪声敏感**：随机梯度的Hessian估计方差极大
+- **鞍点问题**：在鞍点处Hessian奇异
+
+**拟牛顿法的思路**：
+不直接计算Hessian，而是通过历史梯度信息逐步构建近似：
+
+**BFGS更新公式**：
+$$\mathbf{B}_{k+1} = \mathbf{B}_k + \frac{\mathbf{y}_k \mathbf{y}_k^T}{\mathbf{y}_k^T \mathbf{s}_k} - \frac{\mathbf{B}_k \mathbf{s}_k \mathbf{s}_k^T \mathbf{B}_k}{\mathbf{s}_k^T \mathbf{B}_k \mathbf{s}_k}$$
+
+其中：
+- $\mathbf{s}_k = \theta_{k+1} - \theta_k$（参数变化）
+- $\mathbf{y}_k = \nabla \mathcal{L}_{k+1} - \nabla \mathcal{L}_k$（梯度变化）
+- $\mathbf{B}_k$ 是Hessian的近似
 
 ### 5.4.2 L-BFGS
 
@@ -484,25 +683,42 @@ if step % accumulation_steps == 0:
 
 ### 基础题
 
-**练习5.1** 考虑一个二次函数 $f(x) = \frac{1}{2}x^TAx - b^Tx$，其中 $A$ 是正定矩阵。
-- (a) 推导梯度下降的更新公式
+**练习5.1** 考虑一个二次函数 $f(x) = \frac{1}{2}x^TAx - b^Tx$，其中 $A$ 是正定矩阵，特征值为 $0 < \lambda_{min} \leq ... \leq \lambda_{max}$。
+- (a) 推导梯度下降的更新公式和收敛条件
 - (b) 证明当学习率 $\eta < \frac{2}{\lambda_{max}(A)}$ 时，梯度下降收敛
-- (c) 说明动量如何影响收敛速度
+- (c) 分析动量如何改善条件数 $\kappa = \frac{\lambda_{max}}{\lambda_{min}}$ 的影响
+- (d) 计算达到 $\epsilon$-精度需要的迭代次数
 
-*提示：考虑特征值分解 $A = Q\Lambda Q^T$*
+*提示：考虑特征值分解 $A = Q\Lambda Q^T$，在特征空间分析收敛*
 
 <details>
 <summary>答案</summary>
 
-(a) 梯度为 $\nabla f(x) = Ax - b$，更新公式：$x_{t+1} = x_t - \eta(Ax_t - b)$
+(a) 梯度为 $\nabla f(x) = Ax - b$，最优解 $x^* = A^{-1}b$
+   更新公式：$x_{t+1} = x_t - \eta(Ax_t - b) = (I - \eta A)x_t + \eta b$
 
-(b) 令 $e_t = x_t - x^*$ 为误差，则：
-   $e_{t+1} = (I - \eta A)e_t$
+(b) 令 $e_t = x_t - x^*$ 为误差向量，则：
+   $$e_{t+1} = (I - \eta A)e_t$$
+   
+   在特征空间 $\tilde{e}_t = Q^T e_t$：
+   $$\tilde{e}_{t+1} = (I - \eta \Lambda)\tilde{e}_t$$
+   
    收敛条件：$\rho(I - \eta A) < 1$
    即 $|1 - \eta \lambda_i| < 1$ 对所有特征值 $\lambda_i$
-   因此需要 $\eta < \frac{2}{\lambda_{max}}$
+   这要求：$-1 < 1 - \eta \lambda_i < 1$
+   因此：$0 < \eta < \frac{2}{\lambda_{max}}$
 
-(c) 动量方法的收敛率约为 $\left(\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1}\right)$，其中 $\kappa = \frac{\lambda_{max}}{\lambda_{min}}$ 是条件数。无动量时收敛率为 $\frac{\kappa-1}{\kappa+1}$，动量显著改善了收敛速度。
+(c) 动量方法的特征多项式：
+   $$\rho^2 - (1 + \beta - \eta \lambda)\rho + \beta = 0$$
+   
+   最优动量 $\beta_{opt} = \left(\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1}\right)^2$
+   收敛率从 $\frac{\kappa-1}{\kappa+1}$ 改善到 $\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1}$
+   
+   例如：$\kappa = 100$ 时，收敛率从0.98改善到0.82
+
+(d) 达到 $\|e_t\| \leq \epsilon \|e_0\|$ 需要：
+   - 无动量：$t \geq \frac{\log \epsilon}{\log(\frac{\kappa-1}{\kappa+1})} \approx \kappa \log(1/\epsilon)$
+   - 有动量：$t \geq \frac{\log \epsilon}{\log(\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1})} \approx \sqrt{\kappa} \log(1/\epsilon)$
 </details>
 
 **练习5.2** 比较SGD和Adam在以下场景的表现：
@@ -715,10 +931,26 @@ else:
 
 **问题**：学习率过大导致发散，过小导致收敛缓慢
 
+**症状识别**：
+- 过大：损失NaN/Inf，训练曲线剧烈振荡，梯度爆炸
+- 过小：损失下降极慢，梯度范数很小，长时间无进展
+
 **调试技巧**：
-- 使用学习率范围测试（LR Range Test）
-- 从小学习率开始，指数增长，观察损失变化
-- 最佳学习率通常在损失开始发散前的位置
+- **学习率范围测试（LR Range Test）**：
+  1. 从很小的学习率开始（如1e-7）
+  2. 每个批次指数增加学习率
+  3. 绘制损失vs学习率曲线
+  4. 选择损失下降最快的区间
+  
+- **1-cycle策略**：
+  1. 前半程：学习率从小增大到峰值
+  2. 后半程：学习率从峰值降到很小
+  3. 同时反向调整动量
+
+- **经验起点**：
+  - SGD: 0.1（CNN）, 0.01（其他）
+  - Adam: 1e-3（标准）, 3e-4（Transformer）
+  - 大模型：按参数量缩放，如 $\eta \propto 1/\sqrt{N_{params}}$
 
 ### 2. 梯度爆炸/消失
 

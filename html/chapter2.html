@@ -173,6 +173,14 @@ $$\mathbb{E}_\mathcal{D}[(f^*(x) - \hat{f}_\mathcal{D}(x))^2] = (f^*(x) - \mathb
 <li>方差反映模型对训练数据扰动的敏感度</li>
 <li>不可约误差是数据本身的噪声，任何模型都无法消除</li>
 </ul>
+<p><strong>分解的几何意义</strong>：
+想象在高维空间中，每个可能的训练集 $\mathcal{D}$ 产生一个预测函数 $\hat{f}_\mathcal{D}$。所有这些函数形成一个"云"：</p>
+<ul>
+<li>云的中心（期望位置）与真实函数的距离是偏差</li>
+<li>云的分散程度是方差</li>
+<li>即使找到真实函数，噪声 $\sigma^2$ 仍然存在</li>
+</ul>
+<p>这种分解不仅适用于均方误差，对其他损失函数也有类似的分解，尽管形式可能更复杂。例如，0-1损失的分解涉及偏差和方差的非线性组合。</p>
 <h3 id="212">2.1.2 模型复杂度的影响</h3>
 <div class="codehilite"><pre><span></span><code><span class="err">泛化误差</span>
 <span class="w">    </span><span class="o">^</span>
@@ -205,31 +213,86 @@ $$\mathbb{E}_\mathcal{D}[(f^*(x) - \hat{f}_\mathcal{D}(x))^2] = (f^*(x) - \mathb
 <li>3-5阶：往往能在两者间找到平衡</li>
 </ul>
 <p>模型选择的核心问题是找到这个最优点。不同的模型选择方法（AIC、BIC、交叉验证）本质上都在估计这个权衡点。</p>
+<p><strong>数学刻画</strong>：
+设模型类 $\mathcal{F}_k$ 的复杂度为 k（例如多项式的阶数），则：</p>
+<ul>
+<li>偏差通常随 k 递减：$\text{Bias}(k) \sim O(k^{-\alpha})$ 对某个 $\alpha &gt; 0$</li>
+<li>方差通常随 k 递增：$\text{Var}(k) \sim O(k/n)$</li>
+<li>最优复杂度 $k^* \sim n^{1/(1+\alpha)}$</li>
+</ul>
+<p>这解释了为什么更多数据允许使用更复杂的模型：n 增大时，$k^*$ 也增大。</p>
+<p><strong>模型选择准则的统计解释</strong>：</p>
+<ul>
+<li><strong>AIC</strong>（赤池信息准则）：$-2\ln L + 2k$，渐近等价于留一交叉验证</li>
+<li><strong>BIC</strong>（贝叶斯信息准则）：$-2\ln L + k\ln n$，对复杂模型惩罚更重</li>
+<li><strong>交叉验证</strong>：直接估计泛化误差，计算代价较高但最可靠</li>
+</ul>
 <h3 id="213">2.1.3 实践中的权衡</h3>
 <p><strong>经验法则</strong> (Rule of Thumb)：</p>
 <ol>
 <li>
 <p><strong>n/p 规则</strong>：样本数 n 应至少是参数数 p 的 5-10 倍
    - 低于这个比例，过拟合风险显著增加
-   - 现代深度学习是例外（见2.6节）</p>
+   - 现代深度学习是例外（见2.6节）
+   - 高维稀疏问题（如LASSO）可以容忍 p &gt;&gt; n</p>
 </li>
 <li>
 <p><strong>验证集大小</strong>：通常使用 20-30% 的数据作为验证集
-   - 数据量很大时（&gt;10万），可以用更小比例
-   - 数据量很小时（&lt;1000），考虑留一法交叉验证</p>
+   - 数据量很大时（&gt;10万），可以用更小比例（5-10%）
+   - 数据量很小时（&lt;1000），考虑留一法交叉验证
+   - 时间序列：保持时间顺序，最后20-30%作为验证</p>
 </li>
 <li>
 <p><strong>交叉验证折数</strong>：5折或10折交叉验证通常足够
    - 计算资源充足时，10折更稳定
-   - 时间序列数据使用时间切分，而非随机切分</p>
+   - 时间序列数据使用时间切分，而非随机切分
+   - 分层采样确保每折中类别比例一致</p>
 </li>
 </ol>
 <p><strong>模型选择策略</strong>：</p>
 <ol>
-<li><strong>由简到繁</strong>：从简单模型开始，逐步增加复杂度</li>
-<li><strong>正则化路径</strong>：固定模型复杂度，调整正则化强度</li>
-<li><strong>集成方法</strong>：组合多个模型，自动平衡偏差-方差</li>
+<li>
+<p><strong>由简到繁</strong>：从简单模型开始，逐步增加复杂度
+   - 建立基线模型（如线性回归、逻辑回归）
+   - 逐步添加非线性、交互项
+   - 监控验证误差的变化</p>
+</li>
+<li>
+<p><strong>正则化路径</strong>：固定模型复杂度，调整正则化强度
+   - 从强正则化开始（大λ）
+   - 逐步减小λ，观察验证误差
+   - 选择验证误差最小的λ</p>
+</li>
+<li>
+<p><strong>集成方法</strong>：组合多个模型，自动平衡偏差-方差
+   - Bagging减少方差（如随机森林）
+   - Boosting减少偏差（如梯度提升）
+   - Stacking综合多种模型优势</p>
+</li>
 </ol>
+<p><strong>诊断工具</strong>：
+学习曲线是诊断偏差-方差问题的有力工具：</p>
+<ul>
+<li>高偏差：训练和验证误差都高，且接近</li>
+<li>高方差：训练误差低但验证误差高，差距大</li>
+<li>刚好：训练和验证误差都低，差距小</li>
+</ul>
+<div class="codehilite"><pre><span></span><code>误差
+  ^
+  |  高方差情况
+  |  验证误差 --------
+  |                    
+  |  训练误差 ___
+  |          /
+  |_________|________&gt; 样本量
+
+  |  高偏差情况
+  |  验证误差 --------
+  |  训练误差 --------
+  |
+  |_________________&gt; 样本量
+</code></pre></div>
+
 <h2 id="22-pac">2.2 PAC学习理论</h2>
 <p>PAC（Probably Approximately Correct）学习理论回答了机器学习的根本问题：什么时候学习是可能的？需要多少数据？这个框架由Valiant在1984年提出，为计算学习理论奠定了基础。</p>
 <h3 id="221">2.2.1 可学习性的形式化</h3>
@@ -250,6 +313,20 @@ $$\Pr_{\mathcal{S} \sim \mathcal{D}^m}[\text{err}_\mathcal{D}(h_\mathcal{S}) \le
 <li>"Correct"（正确）：学到的假设接近目标概念</li>
 </ul>
 <p>这个定义的强大之处在于它对任意数据分布都成立，这被称为"分布无关"（distribution-free）学习。</p>
+<p><strong>PAC学习的两个关键要求</strong>：</p>
+<ol>
+<li><strong>样本复杂度</strong>：$m_\mathcal{H}(\epsilon, \delta)$ 必须是 $1/\epsilon$ 和 $1/\delta$ 的多项式</li>
+<li><strong>计算复杂度</strong>：算法运行时间必须是多项式的</li>
+</ol>
+<p>第二个要求区分了信息论可学习（存在算法）和计算可学习（存在高效算法）。许多问题在信息论意义上可学习，但计算上困难（如学习一般布尔电路）。</p>
+<p><strong>实例：学习轴平行矩形</strong>
+在二维平面上学习轴平行矩形：</p>
+<ul>
+<li>输入空间：$\mathcal{X} = \mathbb{R}^2$</li>
+<li>概念类：所有轴平行矩形</li>
+<li>样本复杂度：$m = O(\frac{1}{\epsilon}\ln\frac{1}{\delta})$</li>
+<li>算法：找到包含所有正例的最小矩形</li>
+</ul>
 <h3 id="222">2.2.2 有限假设空间</h3>
 <p><strong>定理</strong> (有限假设空间的样本复杂度)：
 对于有限假设空间 $|\mathcal{H}| &lt; \infty$，要达到 $(\epsilon, \delta)$-PAC 学习，充分的样本数为：
@@ -277,6 +354,25 @@ $$\Pr[\text{err}_\mathcal{D}(h_\mathcal{S}) \leq \min_{h \in \mathcal{H}} \text{
 在可实现情况下，一旦看到一个错误样本，就能排除一个假设。但在不可知情况下，即使最好的假设也会犯错，需要通过统计估计来区分假设的好坏，这需要更多样本。具体地，使用Hoeffding不等式：
 $$\Pr[|\hat{\text{err}}_\mathcal{S}(h) - \text{err}_\mathcal{D}(h)| &gt; \epsilon] \leq 2e^{-2m\epsilon^2}$$
 这个二次依赖是集中不等式的本质特征。</p>
+<p><strong>不可知学习的实际意义</strong>：</p>
+<ol>
+<li><strong>鲁棒性</strong>：不需要假设完美模型存在</li>
+<li><strong>现实性</strong>：真实问题中噪声和模型误设很常见</li>
+<li><strong>算法设计</strong>：经验风险最小化（ERM）在不可知设置下仍然最优</li>
+</ol>
+<p><strong>样本复杂度的直观理解</strong>：</p>
+<ul>
+<li>可实现：$m \sim 1/\epsilon$ - 线性收敛</li>
+<li>不可知：$m \sim 1/\epsilon^2$ - 二次收敛</li>
+<li>含义：要将误差减半，不可知学习需要4倍的样本</li>
+</ul>
+<p><strong>与估计理论的联系</strong>：
+不可知学习本质上是参数估计问题。$1/\epsilon^2$ 的依赖对应于中心极限定理：</p>
+<ul>
+<li>均值估计的标准误：$\sigma/\sqrt{n}$</li>
+<li>要达到精度 $\epsilon$：$n \sim \sigma^2/\epsilon^2$</li>
+</ul>
+<p>这解释了为什么许多统计估计量（均值、比例、相关系数）都有 $O(1/\epsilon^2)$ 的样本复杂度。</p>
 <h2 id="23-vc">2.3 VC维与泛化界</h2>
 <p>有限假设空间的理论优雅但受限。VC理论将PAC框架扩展到无限假设空间，这是Vapnik和Chervonenkis的杰出贡献。</p>
 <h3 id="231-vc">2.3.1 VC维的定义</h3>
@@ -339,13 +435,40 @@ $$\text{VCdim}(\mathcal{H}) = \max\{m : \exists C, |C|=m, \mathcal{H} \text{ 打
 <td>$O(W^2)$</td>
 <td>上界，实际可能更小</td>
 </tr>
+<tr>
+<td><strong>RBF核SVM</strong></td>
+<td>∞</td>
+<td>可以实现任意决策边界</td>
+</tr>
+<tr>
+<td><strong>有限精度线性分类器</strong></td>
+<td>$O(d\log(1/\gamma))$</td>
+<td>γ是精度</td>
+</tr>
 </tbody>
 </table>
 <p><strong>重要观察</strong>：</p>
 <ul>
 <li>参数数量不等于VC维（正弦函数只有2个参数但VC维无限）</li>
 <li>VC维可以是无限的，这时需要其他复杂度度量</li>
+<li>约束（如有限精度、正则化）可以有效控制VC维</li>
 </ul>
+<p><strong>VC维的计算技巧</strong>：</p>
+<ol>
+<li>
+<p><strong>上界</strong>：通过参数计数
+   - 如果函数类有p个实值参数，VC维 ≤ O(p²)</p>
+</li>
+<li>
+<p><strong>下界</strong>：构造可打散的点集
+   - 找到特定配置的d个点能被打散</p>
+</li>
+<li>
+<p><strong>精确值</strong>：需要证明
+   - d个点可打散（下界）
+   - d+1个点不可打散（上界）</p>
+</li>
+</ol>
 <h3 id="233-vc">2.3.3 VC维与样本复杂度</h3>
 <p><strong>基本定理</strong> (VC维的泛化界)：
 假设空间 $\mathcal{H}$ 的VC维为 d &lt; ∞，则：</p>

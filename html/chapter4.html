@@ -149,18 +149,18 @@
                 <h1 id="4">第4章：神经网络基础</h1>
 <p>神经网络是现代深度学习的基石。本章将从优化和统计的视角深入探讨神经网络的核心机制，包括反向传播算法的数学原理、激活函数的设计考量、权重初始化的统计学基础，以及梯度传播中的数值稳定性问题。通过本章学习，你将理解神经网络不仅仅是"黑箱"，而是有着坚实数学基础的优化系统。</p>
 <h2 id="41">4.1 反向传播算法</h2>
-<p>反向传播（Backpropagation）是神经网络训练的核心算法，本质上是链式法则在计算图上的高效实现。</p>
+<p>反向传播（Backpropagation）是神经网络训练的核心算法，本质上是链式法则在计算图上的高效实现。这个算法的优雅之处在于，它将一个看似复杂的多层复合函数求导问题，转化为一系列简单的矩阵运算。从优化角度看，反向传播提供了计算损失函数关于所有参数梯度的高效方法，使得基于梯度的优化成为可能。</p>
 <h3 id="411">4.1.1 前向传播与计算图</h3>
-<p>考虑一个L层的前馈神经网络：</p>
+<p>考虑一个L层的前馈神经网络，我们可以将其视为一个有向无环图（DAG），其中节点代表计算操作，边代表数据流动：</p>
 <p>$$\mathbf{z}^{(l)} = \mathbf{W}^{(l)}\mathbf{a}^{(l-1)} + \mathbf{b}^{(l)}$$
 $$\mathbf{a}^{(l)} = f^{(l)}(\mathbf{z}^{(l)})$$
 其中：</p>
 <ul>
-<li>$\mathbf{a}^{(l)}$ 是第$l$层的激活值</li>
-<li>$\mathbf{W}^{(l)}$ 是第$l$层的权重矩阵</li>
-<li>$\mathbf{b}^{(l)}$ 是第$l$层的偏置向量</li>
-<li>$f^{(l)}$ 是第$l$层的激活函数</li>
-<li>$\mathbf{a}^{(0)} = \mathbf{x}$ 是输入</li>
+<li>$\mathbf{a}^{(l)} \in \mathbb{R}^{n_l}$ 是第$l$层的激活值向量</li>
+<li>$\mathbf{W}^{(l)} \in \mathbb{R}^{n_l \times n_{l-1}}$ 是第$l$层的权重矩阵</li>
+<li>$\mathbf{b}^{(l)} \in \mathbb{R}^{n_l}$ 是第$l$层的偏置向量</li>
+<li>$f^{(l)}: \mathbb{R}^{n_l} \rightarrow \mathbb{R}^{n_l}$ 是第$l$层的激活函数（逐元素应用）</li>
+<li>$\mathbf{a}^{(0)} = \mathbf{x}$ 是输入，$\mathbf{a}^{(L)} = \mathbf{y}$ 是输出</li>
 </ul>
 <div class="codehilite"><pre><span></span><code>输入层        隐藏层1       隐藏层2        输出层
   x₁ ───┬──── h₁₁ ────┬──── h₂₁ ────┬──── y₁
@@ -168,49 +168,186 @@ $$\mathbf{a}^{(l)} = f^{(l)}(\mathbf{z}^{(l)})$$
   x₂ ───┼──── h₁₂ ────┼──── h₂₂ ────┼──── y₂
         │             │             │
   x₃ ───┴──── h₁₃ ────┴──── h₂₃ ────┘
+
+前向传播：信息流 →
+反向传播：梯度流 ←
 </code></pre></div>
 
+<p><strong>计算图的优势</strong>：</p>
+<ol>
+<li><strong>模块化</strong>：每个节点只需要知道自己的局部梯度</li>
+<li><strong>自动化</strong>：可以自动推导任意复杂网络的梯度</li>
+<li><strong>并行化</strong>：同层的计算可以并行执行</li>
+<li><strong>内存优化</strong>：可以选择性地存储中间结果</li>
+</ol>
 <h3 id="412">4.1.2 反向传播的数学推导</h3>
-<p>给定损失函数 $\mathcal{L}$，反向传播计算每个参数的梯度。定义第$l$层的误差信号：
-$$\boldsymbol{\delta}^{(l)} = \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}}$$
-<strong>关键递推关系</strong>：</p>
+<p>反向传播的核心思想是利用链式法则，从输出层开始，逐层向后计算梯度。这个过程可以理解为误差信号的反向流动。</p>
+<p>给定损失函数 $\mathcal{L}(\mathbf{a}^{(L)}, \mathbf{y}_{\text{true}})$，我们定义第$l$层的<strong>误差信号</strong>（error signal）：
+$$\boldsymbol{\delta}^{(l)} = \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}} \in \mathbb{R}^{n_l}$$
+这个误差信号表示损失函数对第$l$层线性组合输出的敏感度。</p>
+<p><strong>关键递推关系的详细推导</strong>：</p>
 <ol>
 <li>
-<p><strong>输出层误差</strong>：
-$$\boldsymbol{\delta}^{(L)} = \nabla_{\mathbf{a}^{(L)}}\mathcal{L} \odot f'^{(L)}(\mathbf{z}^{(L)})$$</p>
+<p><strong>输出层误差</strong>（初始条件）：
+$$\boldsymbol{\delta}^{(L)} = \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(L)}} = \frac{\partial \mathcal{L}}{\partial \mathbf{a}^{(L)}} \odot \frac{\partial \mathbf{a}^{(L)}}{\partial \mathbf{z}^{(L)}} = \nabla_{\mathbf{a}^{(L)}}\mathcal{L} \odot f'^{(L)}(\mathbf{z}^{(L)})$$
+其中$\odot$表示Hadamard积（逐元素乘法）。</p>
 </li>
 <li>
-<p><strong>误差反向传播</strong>：
+<p><strong>误差反向传播</strong>（递推关系）：
+   利用链式法则：
+$$\boldsymbol{\delta}^{(l)} = \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}} = \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l+1)}} \cdot \frac{\partial \mathbf{z}^{(l+1)}}{\partial \mathbf{a}^{(l)}} \cdot \frac{\partial \mathbf{a}^{(l)}}{\partial \mathbf{z}^{(l)}}$$
+由于 $\mathbf{z}^{(l+1)} = \mathbf{W}^{(l+1)}\mathbf{a}^{(l)} + \mathbf{b}^{(l+1)}$，有：
+$$\frac{\partial \mathbf{z}^{(l+1)}}{\partial \mathbf{a}^{(l)}} = (\mathbf{W}^{(l+1)})^T$$
+因此：
 $$\boldsymbol{\delta}^{(l)} = (\mathbf{W}^{(l+1)})^T \boldsymbol{\delta}^{(l+1)} \odot f'^{(l)}(\mathbf{z}^{(l)})$$</p>
 </li>
 <li>
-<p><strong>参数梯度</strong>：
-$$\frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(l)}} = \boldsymbol{\delta}^{(l)} (\mathbf{a}^{(l-1)})^T$$
-   $$\frac{\partial \mathcal{L}}{\partial \mathbf{b}^{(l)}} = \boldsymbol{\delta}^{(l)}$$</p>
+<p><strong>参数梯度</strong>（最终目标）：
+   权重梯度（注意这是外积）：
+$$\frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(l)}} = \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}} \cdot \frac{\partial \mathbf{z}^{(l)}}{\partial \mathbf{W}^{(l)}} = \boldsymbol{\delta}^{(l)} (\mathbf{a}^{(l-1)})^T \in \mathbb{R}^{n_l \times n_{l-1}}$$
+偏置梯度：
+$$\frac{\partial \mathcal{L}}{\partial \mathbf{b}^{(l)}} = \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}} = \boldsymbol{\delta}^{(l)} \in \mathbb{R}^{n_l}$$
+<strong>几何解释</strong>：误差信号$\boldsymbol{\delta}^{(l)}$可以理解为损失函数在第$l$层的"责任分配"。每个神经元根据其对最终损失的贡献大小获得相应的误差信号，这个信号指导该神经元的参数更新方向。</p>
 </li>
 </ol>
 <h3 id="413">4.1.3 计算复杂度分析</h3>
-<p>设第$l$层有$n_l$个神经元：</p>
-<ul>
-<li><strong>前向传播</strong>：$O(\sum_{l=1}^L n_l n_{l-1})$</li>
-<li><strong>反向传播</strong>：$O(\sum_{l=1}^L n_l n_{l-1})$</li>
-<li><strong>内存需求</strong>：$O(\sum_{l=1}^L n_l)$（需要存储所有激活值）</li>
-</ul>
-<p><strong>Rule of thumb</strong>: 反向传播的计算成本约为前向传播的2-3倍（考虑到梯度计算和参数更新）。</p>
-<h3 id="414">4.1.4 自动微分与现代实现</h3>
-<p>现代深度学习框架使用自动微分（Automatic Differentiation, AD）实现反向传播：</p>
+<p>理解反向传播的计算复杂度对于优化网络架构和训练效率至关重要。设第$l$层有$n_l$个神经元，批大小为$B$：</p>
+<p><strong>时间复杂度分析</strong>：</p>
 <ol>
 <li>
-<p><strong>静态图</strong> vs <strong>动态图</strong>：
-   - 静态图（如TensorFlow 1.x）：先构建计算图，后执行
-   - 动态图（如PyTorch）：即时构建和执行，更灵活</p>
+<p><strong>前向传播</strong>：
+   - 矩阵乘法：$\mathbf{W}^{(l)}\mathbf{A}^{(l-1)}$ 需要 $O(B \cdot n_l \cdot n_{l-1})$
+   - 激活函数：$O(B \cdot n_l)$
+   - 总计：$O(B \cdot \sum_{l=1}^L n_l n_{l-1})$</p>
 </li>
 <li>
-<p><strong>梯度检查点</strong>（Gradient Checkpointing）：
-   - 用时间换空间：重新计算前向传播而非存储所有激活值
-   - 内存减少：$O(\sqrt{L})$ 而非 $O(L)$
-   - 计算增加：约1.33倍前向传播时间</p>
+<p><strong>反向传播</strong>：
+   - 误差传播：$(\mathbf{W}^{(l+1)})^T \boldsymbol{\Delta}^{(l+1)}$ 需要 $O(B \cdot n_l \cdot n_{l+1})$
+   - 梯度计算：$\boldsymbol{\Delta}^{(l)} (\mathbf{A}^{(l-1)})^T$ 需要 $O(B \cdot n_l \cdot n_{l-1})$
+   - 总计：$O(B \cdot \sum_{l=1}^L (n_l n_{l-1} + n_l n_{l+1})) \approx O(B \cdot \sum_{l=1}^L n_l n_{l-1})$</p>
 </li>
+<li>
+<p><strong>参数更新</strong>：
+   - 权重更新：$O(\sum_{l=1}^L n_l n_{l-1})$
+   - 通常比前向/反向传播快得多</p>
+</li>
+</ol>
+<p><strong>空间复杂度分析</strong>：</p>
+<ol>
+<li><strong>参数存储</strong>：$O(\sum_{l=1}^L n_l n_{l-1} + n_l)$</li>
+<li><strong>激活值存储</strong>：$O(B \cdot \sum_{l=1}^L n_l)$（反向传播需要）</li>
+<li><strong>梯度存储</strong>：$O(\sum_{l=1}^L n_l n_{l-1} + n_l)$</li>
+</ol>
+<p><strong>实际考虑</strong>：</p>
+<ul>
+<li><strong>内存瓶颈</strong>：对于深层网络，存储所有激活值可能成为瓶颈</li>
+<li><strong>计算瓶颈</strong>：矩阵乘法主导计算时间，可通过GPU加速</li>
+<li><strong>通信开销</strong>：分布式训练中，梯度同步可能成为瓶颈</li>
+</ul>
+<p><strong>Rule of thumb</strong>: </p>
+<ul>
+<li>反向传播的计算成本约为前向传播的2-3倍（包括梯度计算）</li>
+<li>内存使用主要由激活值存储决定，与批大小成正比</li>
+<li>对于全连接网络，计算复杂度为$O(N^2)$，其中$N$是总参数量的平方根</li>
+</ul>
+<h3 id="414">4.1.4 自动微分与现代实现</h3>
+<p>现代深度学习框架通过自动微分（Automatic Differentiation, AD）技术自动实现反向传播，使研究者无需手动推导复杂的梯度公式。</p>
+<p><strong>自动微分的两种模式</strong>：</p>
+<ol>
+<li>
+<p><strong>前向模式</strong>（Forward Mode）：
+   - 计算方向：与函数求值同向
+   - 适用场景：输入维度 &lt;&lt; 输出维度
+   - 复杂度：$O(\text{输入维度} \times \text{计算成本})$</p>
+</li>
+<li>
+<p><strong>反向模式</strong>（Reverse Mode）：
+   - 计算方向：与函数求值反向（即反向传播）
+   - 适用场景：输出维度 &lt;&lt; 输入维度（深度学习的典型情况）
+   - 复杂度：$O(\text{输出维度} \times \text{计算成本})$</p>
+</li>
+</ol>
+<p><strong>计算图的两种范式</strong>：</p>
+<ol>
+<li><strong>静态图</strong>（Static Graph）：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code>定义阶段：构建计算图 → 编译优化
+执行阶段：输入数据 → 前向计算 → 反向传播
+</code></pre></div>
+
+<ul>
+<li>代表：TensorFlow 1.x, Theano</li>
+<li>优势：可进行全局优化，执行效率高</li>
+<li>劣势：调试困难，不够灵活</li>
+</ul>
+<ol start="2">
+<li><strong>动态图</strong>（Dynamic Graph）：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code>执行即构建：每次前向传播动态构建图
+</code></pre></div>
+
+<ul>
+<li>代表：PyTorch, TensorFlow 2.x (Eager Execution)</li>
+<li>优势：直观易调试，支持动态结构</li>
+<li>劣势：优化机会有限，可能有额外开销</li>
+</ul>
+<p><strong>内存优化技术</strong>：</p>
+<ol>
+<li><strong>梯度检查点</strong>（Gradient Checkpointing）：
+   - 核心思想：用计算换内存
+   - 实现策略：<ul>
+<li>只存储关键检查点的激活值</li>
+<li>反向传播时重新计算中间激活值</li>
+<li>内存节省：从$O(L)$降至$O(\sqrt{L})$</li>
+<li>计算开销：增加约33%的前向传播时间</li>
+</ul>
+</li>
+</ol>
+<div class="codehilite"><pre><span></span><code>标准反向传播：
+Layer1 → [存储a₁] → Layer2 → [存储a₂] → ... → LayerL
+
+梯度检查点（每√L层一个检查点）：
+Layer1 → ... → Layer√L → [存储] → ... → Layer2√L → [存储] → ...
+                  ↑ 反向传播时重新计算
+</code></pre></div>
+
+<ol start="2">
+<li>
+<p><strong>梯度累积</strong>（Gradient Accumulation）：
+   - 将大批次分成多个小批次
+   - 累积梯度后统一更新
+   - 有效批大小 = 小批大小 × 累积步数</p>
+</li>
+<li>
+<p><strong>混合精度训练</strong>（Mixed Precision）：
+   - 前向传播：使用FP16减少内存
+   - 梯度计算：使用FP32保证数值稳定
+   - 损失缩放：防止FP16下溢</p>
+</li>
+</ol>
+<p><strong>实现细节与优化</strong>：</p>
+<ol>
+<li><strong>运算融合</strong>（Kernel Fusion）：
+   将多个小运算合并为一个大运算，减少内存访问：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code>未融合：z = Wx → a = ReLU(z) （两次内存访问）
+融合后：a = ReLU(Wx) （一次内存访问）
+</code></pre></div>
+
+<ol start="2">
+<li><strong>原地操作</strong>（In-place Operations）：
+   直接修改张量而不创建副本：</li>
+</ol>
+<div class="codehilite"><pre><span></span><code>标准：a_new = f(a_old) → 需要2倍内存
+原地：a = f(a) → 只需1倍内存
+</code></pre></div>
+
+<p>注意：需要确保不破坏梯度计算</p>
+<ol start="3">
+<li><strong>异步执行</strong>：
+   - CPU负责控制流和数据预处理
+   - GPU负责密集计算
+   - 通过流水线隐藏数据传输延迟</li>
 </ol>
 <h2 id="42">4.2 激活函数的选择</h2>
 <p>激活函数引入非线性，是神经网络表达能力的关键。选择合适的激活函数需要考虑梯度传播、计算效率和统计特性。</p>

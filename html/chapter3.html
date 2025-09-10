@@ -152,68 +152,146 @@
 <h3 id="311">3.1.1 最小二乘法的几何与代数</h3>
 <p>考虑线性回归问题：给定数据集 $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^n$，其中 $\mathbf{x}_i \in \mathbb{R}^d$，$y_i \in \mathbb{R}$，我们希望找到参数 $\mathbf{w} \in \mathbb{R}^d$ 和 $b \in \mathbb{R}$，使得：</p>
 <p>$$\hat{y} = \mathbf{w}^T\mathbf{x} + b$$
-最小二乘法通过最小化平方损失来求解：
+这个简单的线性假设背后蕴含着深刻的洞察：在局部范围内，大多数非线性关系都可以用线性函数近似（泰勒展开的一阶项）。即使在深度学习时代，线性层仍然是神经网络的基本构建块。</p>
+<p>最小二乘法通过最小化平方损失来求解：
 $$\mathcal{L}(\mathbf{w}, b) = \frac{1}{2n}\sum_{i=1}^n (y_i - \mathbf{w}^T\mathbf{x}_i - b)^2$$
-为简化记号，我们将偏置项并入权重向量，记 $\tilde{\mathbf{x}} = [\mathbf{x}^T, 1]^T$，$\tilde{\mathbf{w}} = [\mathbf{w}^T, b]^T$。令 $\mathbf{X} \in \mathbb{R}^{n \times (d+1)}$ 为设计矩阵，$\mathbf{y} \in \mathbb{R}^n$ 为目标向量，则：
+选择平方损失而非绝对值损失有多重原因：</p>
+<ol>
+<li><strong>可微性</strong>：平方函数处处可微，便于优化</li>
+<li><strong>唯一性</strong>：凸函数保证全局最优解</li>
+<li><strong>概率解释</strong>：对应高斯噪声的最大似然估计</li>
+<li><strong>计算效率</strong>：导致线性方程组，有闭式解</li>
+</ol>
+<p>为简化记号，我们将偏置项并入权重向量，记 $\tilde{\mathbf{x}} = [\mathbf{x}^T, 1]^T$，$\tilde{\mathbf{w}} = [\mathbf{w}^T, b]^T$。令 $\mathbf{X} \in \mathbb{R}^{n \times (d+1)}$ 为设计矩阵，$\mathbf{y} \in \mathbb{R}^n$ 为目标向量，则：
 $$\mathcal{L}(\tilde{\mathbf{w}}) = \frac{1}{2n}|\mathbf{y} - \mathbf{X}\tilde{\mathbf{w}}|_2^2$$
-<strong>正规方程</strong>：令梯度为零，得到：
-$$\nabla_{\tilde{\mathbf{w}}} \mathcal{L} = -\frac{1}{n}\mathbf{X}^T(\mathbf{y} - \mathbf{X}\tilde{\mathbf{w}}) = 0$$
-当 $\mathbf{X}^T\mathbf{X}$ 可逆时，解为：
+展开这个表达式：
+$$\mathcal{L}(\tilde{\mathbf{w}}) = \frac{1}{2n}(\mathbf{y} - \mathbf{X}\tilde{\mathbf{w}})^T(\mathbf{y} - \mathbf{X}\tilde{\mathbf{w}}) = \frac{1}{2n}(\mathbf{y}^T\mathbf{y} - 2\mathbf{y}^T\mathbf{X}\tilde{\mathbf{w}} + \tilde{\mathbf{w}}^T\mathbf{X}^T\mathbf{X}\tilde{\mathbf{w}})$$
+<strong>正规方程的推导</strong>：对 $\tilde{\mathbf{w}}$ 求导并令其为零：
+$$\nabla_{\tilde{\mathbf{w}}} \mathcal{L} = \frac{1}{n}(-\mathbf{X}^T\mathbf{y} + \mathbf{X}^T\mathbf{X}\tilde{\mathbf{w}}) = 0$$
+这给出正规方程：
+$$\mathbf{X}^T\mathbf{X}\tilde{\mathbf{w}} = \mathbf{X}^T\mathbf{y}$$
+当 $\mathbf{X}^T\mathbf{X}$ 可逆时（满秩条件：$\text{rank}(\mathbf{X}) = d+1 \leq n$），解为：
 $$\tilde{\mathbf{w}}^* = (\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T\mathbf{y}$$
-<strong>几何解释</strong>：</p>
+矩阵 $\mathbf{X}^+ = (\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T$ 称为Moore-Penrose伪逆。</p>
+<p><strong>几何解释</strong>：</p>
 <div class="codehilite"><pre><span></span><code>    y
     |\ 
     | \
-    |  \ 残差
+    |  \ 残差 e = y - ŷ
     |   \
-    |    * 数据点
-    |   /|
-    |  / |
-    | /  | 投影
-    |/___|_______&gt; X空间
-      ŷ
+    |    <span class="gs">* 数据点</span>
+<span class="gs">    |   /|</span>
+<span class="gs">    |  / |</span>
+<span class="gs">    | /  | 投影</span>
+<span class="gs">    |/___|_______&gt; Col(X)</span>
+<span class="gs">      ŷ = Xw*</span>
 </code></pre></div>
 
-<p>最小二乘解 $\hat{\mathbf{y}} = \mathbf{X}\tilde{\mathbf{w}}^*$ 是 $\mathbf{y}$ 在列空间 $\text{Col}(\mathbf{X})$ 上的正交投影。</p>
+<p>最小二乘解 $\hat{\mathbf{y}} = \mathbf{X}\tilde{\mathbf{w}}^*$ 是 $\mathbf{y}$ 在列空间 $\text{Col}(\mathbf{X})$ 上的正交投影。这个几何视角揭示了几个重要性质：</p>
+<ol>
+<li><strong>正交性条件</strong>：残差 $\mathbf{e} = \mathbf{y} - \hat{\mathbf{y}}$ 正交于列空间：$\mathbf{X}^T\mathbf{e} = \mathbf{0}$</li>
+<li><strong>投影矩阵</strong>：$\mathbf{H} = \mathbf{X}(\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T$ 是投影算子，满足 $\mathbf{H}^2 = \mathbf{H}$</li>
+<li><strong>最短距离</strong>：在所有 $\mathbf{X}\mathbf{w}$ 形式的预测中，$\hat{\mathbf{y}}$ 与 $\mathbf{y}$ 的欧氏距离最小</li>
+</ol>
+<p><strong>统计性质</strong>：</p>
+<p>假设数据生成过程为 $\mathbf{y} = \mathbf{X}\mathbf{w}_{\text{true}} + \boldsymbol{\epsilon}$，其中 $\mathbb{E}[\boldsymbol{\epsilon}] = \mathbf{0}$，$\text{Var}[\boldsymbol{\epsilon}] = \sigma^2\mathbf{I}$，则：</p>
+<ol>
+<li><strong>无偏性</strong>：$\mathbb{E}[\hat{\mathbf{w}}] = \mathbf{w}_{\text{true}}$</li>
+<li><strong>方差</strong>：$\text{Var}[\hat{\mathbf{w}}] = \sigma^2(\mathbf{X}^T\mathbf{X})^{-1}$</li>
+<li><strong>Gauss-Markov定理</strong>：在所有线性无偏估计中，OLS具有最小方差</li>
+</ol>
 <h3 id="312">3.1.2 病态问题与岭回归</h3>
-<p>当特征高度相关或 $d &gt; n$ 时，$\mathbf{X}^T\mathbf{X}$ 接近奇异，导致：</p>
+<p>当特征高度相关或 $d &gt; n$ 时，$\mathbf{X}^T\mathbf{X}$ 接近奇异，导致严重的数值和统计问题。</p>
+<p><strong>病态性的表现</strong>：</p>
+<ol>
+<li><strong>数值不稳定</strong>：微小扰动引起解的巨大变化</li>
+<li><strong>过拟合</strong>：模型在训练集上表现良好，但泛化性能差  </li>
+<li><strong>系数爆炸</strong>：参数估计值异常大，符号可能错误</li>
+<li><strong>方差膨胀</strong>：参数估计的方差趋于无穷</li>
+</ol>
+<p><strong>条件数分析</strong>：</p>
+<p>矩阵条件数定义为：
+$$\kappa(\mathbf{X}^T\mathbf{X}) = \frac{\lambda_{\max}(\mathbf{X}^T\mathbf{X})}{\lambda_{\min}(\mathbf{X}^T\mathbf{X})} = \left(\frac{\sigma_{\max}(\mathbf{X})}{\sigma_{\min}(\mathbf{X})}\right)^2$$
+其中 $\sigma_i$ 是 $\mathbf{X}$ 的奇异值。条件数的含义：</p>
 <ul>
-<li>数值不稳定：微小扰动引起解的巨大变化</li>
-<li>过拟合：模型在训练集上表现良好，但泛化性能差</li>
+<li>$\kappa &lt; 10$：良态问题</li>
+<li>$10 &lt; \kappa &lt; 100$：轻度病态</li>
+<li>$100 &lt; \kappa &lt; 1000$：中度病态</li>
+<li>$\kappa &gt; 1000$：严重病态</li>
 </ul>
-<p><strong>条件数分析</strong>：矩阵条件数 $\kappa(\mathbf{X}^T\mathbf{X}) = \lambda_{\max}/\lambda_{\min}$ 衡量问题的病态程度。</p>
+<p><strong>相对误差放大</strong>：若输入有相对误差 $\epsilon$，则解的相对误差可达 $\kappa \cdot \epsilon$。</p>
 <p><strong>岭回归（Ridge Regression）</strong> 通过添加 $L_2$ 正则化来缓解这些问题：
 $$\mathcal{L}_{\text{ridge}}(\tilde{\mathbf{w}}) = \frac{1}{2n}|\mathbf{y} - \mathbf{X}\tilde{\mathbf{w}}|_2^2 + \frac{\lambda}{2}|\tilde{\mathbf{w}}|_2^2$$
-其中 $\lambda &gt; 0$ 是正则化参数。闭式解为：
+其中 $\lambda &gt; 0$ 是正则化参数，控制偏差-方差权衡。</p>
+<p><strong>闭式解的推导</strong>：</p>
+<p>令梯度为零：
+$$\nabla_{\tilde{\mathbf{w}}} \mathcal{L}_{\text{ridge}} = \frac{1}{n}\mathbf{X}^T(\mathbf{X}\tilde{\mathbf{w}} - \mathbf{y}) + \lambda\tilde{\mathbf{w}} = 0$$
+整理得：
+$$(\mathbf{X}^T\mathbf{X} + n\lambda\mathbf{I})\tilde{\mathbf{w}} = \mathbf{X}^T\mathbf{y}$$
+因此：
 $$\tilde{\mathbf{w}}_{\text{ridge}}^* = (\mathbf{X}^T\mathbf{X} + n\lambda\mathbf{I})^{-1}\mathbf{X}^T\mathbf{y}$$
-<strong>Rule of thumb</strong>：</p>
+<strong>改善条件数</strong>：正则化后的条件数变为：
+$$\kappa_{\text{ridge}} = \frac{\lambda_{\max} + n\lambda}{\lambda_{\min} + n\lambda} &lt; \kappa$$
+当 $\lambda$ 足够大时，$\kappa_{\text{ridge}} \approx 1$，问题变为良态。</p>
+<p><strong>Rule of thumb</strong>：</p>
 <ul>
-<li>当特征之间相关性高时，选择较大的 $\lambda$（如 0.1-1.0）</li>
-<li>当样本量远大于特征数时，可以使用较小的 $\lambda$（如 0.001-0.01）</li>
-<li>通过交叉验证自动选择 $\lambda$ 是最可靠的方法</li>
+<li>特征相关性高：$\lambda \in [0.1, 1.0]$</li>
+<li>样本量充足（$n \gg d$）：$\lambda \in [0.001, 0.01]$</li>
+<li>高维问题（$d &gt; n$）：$\lambda \in [1.0, 10.0]$</li>
+<li>实践中：使用交叉验证，在对数尺度 $[10^{-4}, 10^2]$ 上搜索</li>
 </ul>
 <h3 id="313">3.1.3 奇异值分解视角</h3>
-<p>通过SVD分解 $\mathbf{X} = \mathbf{U}\mathbf{\Sigma}\mathbf{V}^T$，我们可以更深入理解岭回归：
-$$\tilde{\mathbf{w}}_{\text{ridge}}^* = \mathbf{V}\mathbf{D}\mathbf{U}^T\mathbf{y}$$
-其中 $\mathbf{D} = \text{diag}(\frac{\sigma_i}{\sigma_i^2 + n\lambda})$。这表明岭回归：</p>
+<p>通过SVD分解 $\mathbf{X} = \mathbf{U}\mathbf{\Sigma}\mathbf{V}^T$，我们可以更深入理解岭回归的作用机制。这里：</p>
 <ul>
-<li>保留大奇异值方向（信号）</li>
-<li>收缩小奇异值方向（噪声）</li>
-<li>实现了一种"软"的维度约简</li>
+<li>$\mathbf{U} \in \mathbb{R}^{n \times n}$：左奇异向量，数据空间的正交基</li>
+<li>$\mathbf{\Sigma} \in \mathbb{R}^{n \times (d+1)}$：奇异值对角矩阵</li>
+<li>$\mathbf{V} \in \mathbb{R}^{(d+1) \times (d+1)}$：右奇异向量，参数空间的正交基</li>
 </ul>
+<p><strong>最小二乘解的SVD表示</strong>：
+$$\tilde{\mathbf{w}}_{\text{OLS}}^* = \mathbf{V}\mathbf{\Sigma}^+\mathbf{U}^T\mathbf{y} = \sum_{i=1}^r \frac{1}{\sigma_i}(\mathbf{u}_i^T\mathbf{y})\mathbf{v}_i$$
+其中 $r = \text{rank}(\mathbf{X})$，$\mathbf{\Sigma}^+$ 是伪逆。</p>
+<p><strong>岭回归解的SVD表示</strong>：
+$$\tilde{\mathbf{w}}_{\text{ridge}}^* = \mathbf{V}\mathbf{D}_\lambda\mathbf{U}^T\mathbf{y} = \sum_{i=1}^r \frac{\sigma_i}{\sigma_i^2 + n\lambda}(\mathbf{u}_i^T\mathbf{y})\mathbf{v}_i$$
+其中 $\mathbf{D}_\lambda = \text{diag}\left(\frac{\sigma_i}{\sigma_i^2 + n\lambda}\right)$。</p>
+<p><strong>收缩因子分析</strong>：</p>
+<p>定义收缩因子 $s_i(\lambda) = \frac{\sigma_i^2}{\sigma_i^2 + n\lambda}$，则：</p>
+<ul>
+<li>当 $\sigma_i \gg \sqrt{n\lambda}$：$s_i \approx 1$（几乎不收缩）</li>
+<li>当 $\sigma_i \ll \sqrt{n\lambda}$：$s_i \approx 0$（强烈收缩）</li>
+<li>当 $\sigma_i = \sqrt{n\lambda}$：$s_i = 0.5$（半收缩点）</li>
+</ul>
+<p>这揭示了岭回归的<strong>频谱滤波</strong>性质：</p>
+<div class="codehilite"><pre><span></span><code>收缩因子
+  1.0 |******
+      |      ****
+  0.5 |          **
+      |            ***
+  0.0 |_______________****___
+      0   σ₁  σ₂  σ₃ ... σᵣ
+         大←奇异值→小
+</code></pre></div>
+
+<p><strong>方差缩减效应</strong>：</p>
+<p>参数估计的协方差矩阵：
+$$\text{Cov}[\tilde{\mathbf{w}}_{\text{ridge}}] = \sigma^2\mathbf{V}\text{diag}\left(\frac{\sigma_i^2}{(\sigma_i^2 + n\lambda)^2}\right)\mathbf{V}^T$$
+总方差（迹）：
+$$\text{tr}(\text{Cov}[\tilde{\mathbf{w}}_{\text{ridge}}]) = \sigma^2\sum_{i=1}^r \frac{\sigma_i^2}{(\sigma_i^2 + n\lambda)^2} &lt; \sigma^2\sum_{i=1}^r \frac{1}{\sigma_i^2}$$
+岭回归通过牺牲无偏性换取方差的大幅降低。</p>
 <h2 id="32-lasso">3.2 LASSO与稀疏性</h2>
 <h3 id="321-l_1">3.2.1 $L_1$ 正则化的稀疏诱导性</h3>
-<p>LASSO（Least Absolute Shrinkage and Selection Operator）使用 $L_1$ 正则化：
+<p>LASSO（Least Absolute Shrinkage and Selection Operator）由Tibshirani于1996年提出，使用 $L_1$ 正则化实现自动特征选择：
 $$\mathcal{L}_{\text{lasso}}(\tilde{\mathbf{w}}) = \frac{1}{2n}|\mathbf{y} - \mathbf{X}\tilde{\mathbf{w}}|_2^2 + \lambda|\tilde{\mathbf{w}}|_1$$
-与岭回归不同，LASSO倾向于产生稀疏解（许多系数恰好为0）。</p>
-<p><strong>几何直觉</strong>：</p>
+其中 $|\tilde{\mathbf{w}}|_1 = \sum_{j=1}^{d+1}|w_j|$ 是 $L_1$ 范数。</p>
+<p><strong>为什么 $L_1$ 产生稀疏性？</strong></p>
+<p>从三个角度理解：</p>
+<p><strong>1. 几何视角</strong>：</p>
 <div class="codehilite"><pre><span></span><code><span class="w">    </span><span class="n">w2</span>
 <span class="w">     </span><span class="o">^</span>
 <span class="w">     </span><span class="o">|</span><span class="w">     </span><span class="err">岭回归约束域</span>
 <span class="w">     </span><span class="o">|</span><span class="w">    </span><span class="o">/----------</span><span class="err">\</span>
 <span class="w">     </span><span class="o">|</span><span class="w">   </span><span class="o">/</span><span class="w">   </span><span class="err">圆形</span><span class="w">    </span><span class="err">\</span>
 <span class="w">     </span><span class="o">|</span><span class="w">  </span><span class="o">|</span><span class="w">      </span><span class="o">*</span><span class="err">最优解</span><span class="o">|</span>
-<span class="w">     </span><span class="o">|</span><span class="w">   </span><span class="err">\</span><span class="w">          </span><span class="o">/</span>
+<span class="w">     </span><span class="o">|</span><span class="w">   </span><span class="err">\</span><span class="w">   </span><span class="p">(</span><span class="err">内部</span><span class="p">)</span><span class="w">  </span><span class="o">/</span>
 <span class="w">     </span><span class="o">|</span><span class="w">    </span><span class="err">\</span><span class="o">--------/</span>
 <span class="w"> </span><span class="o">----|----+------+----&gt;</span><span class="w"> </span><span class="n">w1</span>
 <span class="w">     </span><span class="o">|</span><span class="w">   </span><span class="o">/|</span><span class="err">\</span><span class="w">    </span><span class="o">/|</span><span class="err">\</span>
@@ -221,28 +299,108 @@ $$\mathcal{L}_{\text{lasso}}(\tilde{\mathbf{w}}) = \frac{1}{2n}|\mathbf{y} - \ma
 <span class="w">     </span><span class="o">|</span><span class="w"> </span><span class="o">/</span><span class="w">  </span><span class="o">|</span><span class="w">  </span><span class="err">\</span><span class="o">/</span><span class="w">  </span><span class="o">|</span><span class="w">  </span><span class="err">\</span><span class="w">  </span><span class="n">LASSO约束域</span>
 <span class="w">     </span><span class="o">|&lt;---|---*---|---&gt;</span><span class="w"> </span><span class="err">（菱形）</span>
 <span class="w">     </span><span class="o">|</span><span class="w">    </span><span class="o">|</span><span class="w">  </span><span class="err">最优解</span>
-<span class="w">     </span><span class="o">|</span><span class="w">    </span><span class="o">|</span><span class="err">（在顶点）</span>
+<span class="w">     </span><span class="o">|</span><span class="w">    </span><span class="o">|</span><span class="w"> </span><span class="p">(</span><span class="err">在顶点→稀疏</span><span class="p">)</span>
 </code></pre></div>
 
-<p>$L_1$ 约束域的顶点使得某些坐标为零，产生稀疏性。</p>
+<p>等高线与约束域的切点：</p>
+<ul>
+<li>$L_2$ 球：切点几乎总在内部，所有坐标非零</li>
+<li>$L_1$ 菱形：切点常在顶点或边上，某些坐标为零</li>
+</ul>
+<p><strong>2. 次梯度视角</strong>：</p>
+<p>LASSO的最优性条件（KKT条件）：
+$$\mathbf{x}_j^T(\mathbf{y} - \mathbf{X}\hat{\mathbf{w}}) = n\lambda \cdot \text{sign}(\hat{w}_j), \quad \text{if } \hat{w}_j \neq 0$$
+$$|\mathbf{x}_j^T(\mathbf{y} - \mathbf{X}\hat{\mathbf{w}})| \leq n\lambda, \quad \text{if } \hat{w}_j = 0$$
+这意味着特征与残差的相关性必须达到阈值 $n\lambda$ 才能"进入"模型。</p>
+<p><strong>3. 贝叶斯视角</strong>：</p>
+<p>$L_1$ 正则化对应拉普拉斯先验：
+$$p(w_j) = \frac{\lambda}{2}\exp(-\lambda|w_j|)$$
+拉普拉斯分布在零点有尖峰，高概率产生零值，而高斯先验（对应 $L_2$）在零点平滑。</p>
+<div class="codehilite"><pre><span></span><code>概率密度
+  ^
+  |    拉普拉斯
+  |      /\
+  |     /  \
+  |    /    \___
+  |___/________\___&gt; w
+      0
+
+  |    高斯
+  |    ___
+  |   /   \
+  |  /     \
+  |_/_______\___&gt; w
+      0
+</code></pre></div>
+
 <h3 id="322">3.2.2 软阈值算子与坐标下降</h3>
-<p>虽然LASSO没有闭式解，但通过坐标下降可以高效求解。对于单个坐标 $w_j$，固定其他坐标时：
-$$w_j^* = S_{\lambda}(\rho_j)$$
-其中 $S_{\lambda}$ 是软阈值算子：
+<p>虽然LASSO没有闭式解，但可以通过迭代算法高效求解。关键洞察是：固定其他坐标时，单变量子问题有闭式解。</p>
+<p><strong>单变量LASSO问题</strong>：</p>
+<p>固定 $\mathbf{w}_{-j}$，关于 $w_j$ 的目标函数：
+$$f(w_j) = \frac{1}{2n}\sum_{i=1}^n (r_i - x_{ij}w_j)^2 + \lambda|w_j|$$
+其中 $r_i = y_i - \sum_{k \neq j} x_{ik}w_k$ 是部分残差。</p>
+<p><strong>软阈值算子</strong>：</p>
+<p>上述问题的解由软阈值算子给出：
+$$w_j^* = S_{\lambda/c_j}(\rho_j/c_j)$$
+其中：</p>
+<ul>
+<li>$\rho_j = \frac{1}{n}\sum_{i=1}^n x_{ij}r_i$ 是特征与残差的相关性</li>
+<li>$c_j = \frac{1}{n}\sum_{i=1}^n x_{ij}^2$ 是特征的二阶矩</li>
+<li>软阈值算子定义为：
 $$S_{\lambda}(x) = \text{sign}(x)\max(|x| - \lambda, 0) = \begin{cases}
 x - \lambda &amp; \text{if } x &gt; \lambda \\
 0 &amp; \text{if } |x| \leq \lambda \\
 x + \lambda &amp; \text{if } x &lt; -\lambda
 \end{cases}$$
-<strong>算法：坐标下降</strong></p>
-<div class="codehilite"><pre><span></span><code>初始化 w = 0
-重复直到收敛：
-    对每个特征 j = 1, ..., d：
-        计算残差 r = y - X_{-j}w_{-j}
-        计算相关性 ρ_j = X_j^T r / n
-        更新 w_j = S_{λ}(ρ_j) / (X_j^T X_j / n)
+<strong>软阈值的图像</strong>：</li>
+</ul>
+<div class="codehilite"><pre><span></span><code><span class="w">     </span><span class="err">输出</span><span class="w"> </span><span class="n">S_λ</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="w">         </span><span class="o">^</span>
+<span class="w">        </span><span class="o">/|</span>
+<span class="w">       </span><span class="o">/</span><span class="w"> </span><span class="o">|</span>
+<span class="w">      </span><span class="o">/</span><span class="w">  </span><span class="o">|</span>
+<span class="w">    </span><span class="n">_</span><span class="o">/</span><span class="w">   </span><span class="o">|</span><span class="w">   </span><span class="err">\</span><span class="n">_</span>
+<span class="o">----+----+----+----&gt;</span><span class="w"> </span><span class="err">输入</span><span class="w"> </span><span class="n">x</span>
+<span class="w">   </span><span class="o">-</span><span class="err">λ</span><span class="w">    </span><span class="mi">0</span><span class="w">    </span><span class="err">λ</span>
+<span class="w">    </span><span class="err">\</span><span class="n">_</span><span class="w">   </span><span class="o">|</span><span class="w">   </span><span class="n">_</span><span class="o">/</span>
+<span class="w">      </span><span class="err">\</span><span class="w">  </span><span class="o">|</span><span class="w">  </span><span class="o">/</span>
+<span class="w">       </span><span class="err">\</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="o">/</span>
+<span class="w">        </span><span class="err">\</span><span class="o">|/</span>
 </code></pre></div>
 
+<p><strong>坐标下降算法</strong>：</p>
+<div class="codehilite"><pre><span></span><code>输入：数据 (X, y)，正则化参数 λ，容差 ε
+初始化：w = 0, r = y (残差)
+预计算：c_j = ||X_j||²/n for j = 1,...,d
+
+重复直到收敛：
+    for j = 1 to d:
+        # 计算特征j与当前残差的相关性
+        ρ_j = X_j^T r / n
+
+        # 保存旧值
+        w_old = w_j
+
+        # 软阈值更新
+        w_j = S_{λ}(ρ_j/c_j + w_old) 
+
+        # 更新残差
+        if w_j ≠ w_old:
+            r = r - (w_j - w_old) * X_j
+
+    # 检查收敛
+    if max_j |w_j^{new} - w_j^{old}| &lt; ε:
+        break
+
+返回：稀疏解 w
+</code></pre></div>
+
+<p><strong>收敛性质</strong>：</p>
+<ul>
+<li>每次更新都减少目标函数（下降性）</li>
+<li>对凸问题保证收敛到全局最优</li>
+<li>收敛速度：线性收敛，率依赖于相关性结构</li>
+</ul>
 <h3 id="323">3.2.3 变量选择与解路径</h3>
 <p>LASSO的一个重要特性是自动变量选择。随着 $\lambda$ 从大到小变化：</p>
 <ul>

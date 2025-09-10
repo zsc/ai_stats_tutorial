@@ -49,6 +49,11 @@ $$q(\mathbf{x}_t | \mathbf{x}_{t-1}) = \mathcal{N}(\mathbf{x}_t; \sqrt{1-\beta_t
 - $\beta_t \in (0, 1)$ 是噪声调度（noise schedule）
 - $T$ 是扩散步数（通常为1000）
 
+这个设计有几个关键考虑：
+1. **方差保持性**：选择 $\sqrt{1-\beta_t}$ 作为均值系数确保在适当条件下方差不会爆炸
+2. **渐进性**：$\beta_t$ 通常很小（$10^{-4}$ 到 $0.02$），确保缓慢破坏结构
+3. **可逆性**：高斯噪声的选择使得理论分析tractable
+
 ### 重参数化技巧与闭式解
 
 虽然前向过程是马尔可夫的，但我们可以直接从 $\mathbf{x}_0$ 采样任意时刻 $\mathbf{x}_t$：
@@ -57,48 +62,93 @@ $$q(\mathbf{x}_t | \mathbf{x}_{t-1}) = \mathcal{N}(\mathbf{x}_t; \sqrt{1-\beta_t
 
 $$q(\mathbf{x}_t | \mathbf{x}_0) = \mathcal{N}(\mathbf{x}_t; \sqrt{\bar{\alpha}_t} \mathbf{x}_0, (1-\bar{\alpha}_t) \mathbf{I})$$
 
-这可以重写为：
+**推导过程**：利用高斯分布的可加性
+$$\mathbf{x}_t = \sqrt{\alpha_t} \mathbf{x}_{t-1} + \sqrt{1-\alpha_t} \boldsymbol{\epsilon}_{t-1}$$
+$$= \sqrt{\alpha_t}(\sqrt{\alpha_{t-1}} \mathbf{x}_{t-2} + \sqrt{1-\alpha_{t-1}} \boldsymbol{\epsilon}_{t-2}) + \sqrt{1-\alpha_t} \boldsymbol{\epsilon}_{t-1}$$
+$$= \sqrt{\alpha_t \alpha_{t-1}} \mathbf{x}_{t-2} + \text{组合噪声项}$$
+
+递归展开并利用独立高斯噪声的可加性，最终得到：
 $$\mathbf{x}_t = \sqrt{\bar{\alpha}_t} \mathbf{x}_0 + \sqrt{1-\bar{\alpha}_t} \boldsymbol{\epsilon}$$
 
 其中 $\boldsymbol{\epsilon} \sim \mathcal{N}(0, \mathbf{I})$。
 
 **直觉理解**：
-- $\sqrt{\bar{\alpha}_t}$ 控制保留多少原始信号
-- $\sqrt{1-\bar{\alpha}_t}$ 控制添加多少噪声
+- $\sqrt{\bar{\alpha}_t}$ 控制保留多少原始信号（信号衰减因子）
+- $\sqrt{1-\bar{\alpha}_t}$ 控制添加多少噪声（噪声放大因子）
 - 当 $t \to T$，$\bar{\alpha}_T \to 0$，$\mathbf{x}_T$ 接近纯高斯噪声
+- 系数平方和为1：$\bar{\alpha}_t + (1-\bar{\alpha}_t) = 1$（能量守恒）
+
+这个闭式解的重要性：
+1. **训练效率**：可以直接采样任意时刻，无需逐步模拟
+2. **并行化**：不同时刻的样本可以并行生成
+3. **数值稳定**：避免累积误差
 
 ### 噪声调度设计
 
-噪声调度 $\{\beta_t\}_{t=1}^T$ 的设计至关重要：
+噪声调度 $\{\beta_t\}_{t=1}^T$ 的设计至关重要，直接影响模型的训练效率和生成质量：
 
 1. **线性调度**：$\beta_t = \beta_{\min} + \frac{t-1}{T-1}(\beta_{\max} - \beta_{\min})$
    - 简单直观，早期工作常用
    - 典型值：$\beta_{\min} = 10^{-4}$，$\beta_{\max} = 0.02$
+   - 问题：早期噪声添加过快，后期过慢
 
 2. **余弦调度**：基于信噪比设计
    $$\bar{\alpha}_t = \frac{f(t)}{f(0)}, \quad f(t) = \cos\left(\frac{t/T + s}{1 + s} \cdot \frac{\pi}{2}\right)^2$$
    - 更平滑的噪声添加过程
    - 在中间时间步保留更多信息
+   - 参数 $s=0.008$ 防止 $t=0$ 附近的突变
 
-3. **自适应调度**：根据数据特性学习最优调度
+3. **平方根调度**：$\bar{\alpha}_t = 1 - \sqrt{t/T + s}$
+   - 介于线性和余弦之间
+   - 对高分辨率图像效果较好
+
+4. **自适应调度**：根据数据特性学习最优调度
+   - 可以用神经网络参数化 $\beta_t$
+   - 需要额外的正则化防止退化
+
+**调度设计原则**：
+- 初始阶段（$t$ 小）：保持大部分信息，$\beta_t$ 应该很小
+- 中间阶段：平稳过渡，避免信息丢失过快
+- 最终阶段（$t$ 接近 $T$）：确保 $\mathbf{x}_T \approx \mathcal{N}(0, \mathbf{I})$
 
 **Rule of Thumb**：
-- 图像生成：余弦调度通常更好
+- 图像生成：余弦调度通常更好，特别是256×256以下分辨率
+- 高分辨率（512×512以上）：考虑平方根或学习的调度
 - 步数选择：训练时 $T=1000$，推理时可以减少到 50-100 步
 - 调试技巧：可视化不同 $t$ 时刻的 $\mathbf{x}_t$，确保噪声添加合理
+- 检查 $\bar{\alpha}_T$ 是否足够小（通常 < 0.001）
 
 ### 信噪比分析
 
-定义信噪比（SNR）：
-$$\text{SNR}(t) = \frac{\bar{\alpha}_t}{1-\bar{\alpha}_t}$$
+信噪比（SNR）提供了理解扩散过程的统一框架：
+
+定义信噪比：
+$$\text{SNR}(t) = \frac{\bar{\alpha}_t}{1-\bar{\alpha}_t} = \frac{\text{信号方差}}{\text{噪声方差}}$$
 
 对数信噪比：
 $$\log \text{SNR}(t) = \log \bar{\alpha}_t - \log(1-\bar{\alpha}_t)$$
 
 **关键性质**：
-1. SNR 单调递减：$\text{SNR}(0) = \infty$（纯信号），$\text{SNR}(T) \approx 0$（纯噪声）
-2. 均匀的对数SNR下降通常导致更好的生成质量
-3. 可以通过SNR匹配在不同分辨率间迁移模型
+1. **单调性**：SNR 严格单调递减
+   - $\text{SNR}(0) = \infty$（纯信号）
+   - $\text{SNR}(T) \approx 0$（纯噪声）
+
+2. **调度等价性**：不同调度可以通过SNR匹配实现等价
+   - 给定目标 $\log \text{SNR}(t)$，可以反推 $\bar{\alpha}_t$
+   - $\bar{\alpha}_t = \text{sigmoid}(\log \text{SNR}(t))$
+
+3. **最优调度特征**：
+   - 均匀的对数SNR下降通常导致更好的生成质量
+   - $\frac{d \log \text{SNR}}{dt} \approx \text{const}$ 是理想情况
+
+4. **分辨率适应**：
+   - 高分辨率图像需要更缓慢的SNR下降
+   - 可以通过SNR匹配在不同分辨率间迁移模型
+
+**实用技巧**：
+- 监控训练时不同 $t$ 的损失分布，理想情况下应该均匀
+- 如果某些 $t$ 的损失特别高，考虑调整该区间的噪声调度
+- 使用SNR加权的损失函数可以改善训练稳定性
 
 ## 11.3 反向扩散与去噪
 
@@ -110,16 +160,31 @@ $$p_\theta(\mathbf{x}_{t-1} | \mathbf{x}_t) = \mathcal{N}(\mathbf{x}_{t-1}; \bol
 
 关键问题：如何参数化均值 $\boldsymbol{\mu}_\theta$ 和方差 $\boldsymbol{\Sigma}_\theta$？
 
+**理论基础**：当 $\beta_t$ 足够小时，反向过程的真实分布也近似高斯：
+$$q(\mathbf{x}_{t-1}|\mathbf{x}_t) \approx \mathcal{N}(\mathbf{x}_{t-1}; \boldsymbol{\mu}_q(\mathbf{x}_t, t), \boldsymbol{\Sigma}_q(t))$$
+
+这为高斯参数化提供了理论支撑。
+
 ### 贝叶斯后验的启发
 
-当我们知道 $\mathbf{x}_0$ 时，可以计算真实的后验分布：
+当我们知道 $\mathbf{x}_0$ 时，可以利用贝叶斯定理计算真实的后验分布：
 
 $$q(\mathbf{x}_{t-1} | \mathbf{x}_t, \mathbf{x}_0) = \mathcal{N}(\mathbf{x}_{t-1}; \tilde{\boldsymbol{\mu}}_t(\mathbf{x}_t, \mathbf{x}_0), \tilde{\beta}_t \mathbf{I})$$
 
-其中：
+**推导**：利用贝叶斯定理和高斯分布的性质
+$$q(\mathbf{x}_{t-1} | \mathbf{x}_t, \mathbf{x}_0) = \frac{q(\mathbf{x}_t | \mathbf{x}_{t-1}, \mathbf{x}_0) q(\mathbf{x}_{t-1} | \mathbf{x}_0)}{q(\mathbf{x}_t | \mathbf{x}_0)}$$
+
+由于马尔可夫性质：$q(\mathbf{x}_t | \mathbf{x}_{t-1}, \mathbf{x}_0) = q(\mathbf{x}_t | \mathbf{x}_{t-1})$
+
+代入高斯分布形式并完成平方，得到：
 $$\tilde{\boldsymbol{\mu}}_t(\mathbf{x}_t, \mathbf{x}_0) = \frac{\sqrt{\bar{\alpha}_{t-1}} \beta_t}{1-\bar{\alpha}_t} \mathbf{x}_0 + \frac{\sqrt{\alpha_t}(1-\bar{\alpha}_{t-1})}{1-\bar{\alpha}_t} \mathbf{x}_t$$
 
 $$\tilde{\beta}_t = \frac{1-\bar{\alpha}_{t-1}}{1-\bar{\alpha}_t} \beta_t$$
+
+**关键洞察**：
+1. 后验均值是 $\mathbf{x}_0$ 和 $\mathbf{x}_t$ 的线性组合
+2. 权重系数依赖于噪声调度
+3. 后验方差是确定的，不依赖于数据
 
 这启发我们：如果能从 $\mathbf{x}_t$ 预测出 $\mathbf{x}_0$，就能计算反向过程的均值！
 
@@ -127,31 +192,71 @@ $$\tilde{\beta}_t = \frac{1-\bar{\alpha}_{t-1}}{1-\bar{\alpha}_t} \beta_t$$
 
 给定 $\mathbf{x}_t = \sqrt{\bar{\alpha}_t} \mathbf{x}_0 + \sqrt{1-\bar{\alpha}_t} \boldsymbol{\epsilon}$，我们可以选择预测：
 
-1. **预测原始数据**：$\hat{\mathbf{x}}_0 = f_\theta(\mathbf{x}_t, t)$
+1. **预测原始数据** ($\mathbf{x}_0$-参数化)：$\hat{\mathbf{x}}_0 = f_\theta(\mathbf{x}_t, t)$
+   
+   从噪声样本重构原始数据：
+   $$\hat{\mathbf{x}}_0 = \frac{\mathbf{x}_t - \sqrt{1-\bar{\alpha}_t} \boldsymbol{\epsilon}}{\sqrt{\bar{\alpha}_t}}$$
+   
+   代入后验均值公式：
    $$\boldsymbol{\mu}_\theta = \frac{\sqrt{\bar{\alpha}_{t-1}} \beta_t}{1-\bar{\alpha}_t} \hat{\mathbf{x}}_0 + \frac{\sqrt{\alpha_t}(1-\bar{\alpha}_{t-1})}{1-\bar{\alpha}_t} \mathbf{x}_t$$
 
-2. **预测噪声**：$\hat{\boldsymbol{\epsilon}} = \boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t)$
+2. **预测噪声** ($\boldsymbol{\epsilon}$-参数化)：$\hat{\boldsymbol{\epsilon}} = \boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t)$
+   
+   这是最直观的选择，因为前向过程就是添加噪声：
    $$\boldsymbol{\mu}_\theta = \frac{1}{\sqrt{\alpha_t}} \left( \mathbf{x}_t - \frac{\beta_t}{\sqrt{1-\bar{\alpha}_t}} \hat{\boldsymbol{\epsilon}} \right)$$
+   
+   训练目标简化为：$\mathcal{L} = \|\boldsymbol{\epsilon} - \boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t)\|^2$
 
-3. **预测分数**：$\nabla_{\mathbf{x}_t} \log p_t(\mathbf{x}_t) = -\frac{1}{\sqrt{1-\bar{\alpha}_t}} \boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t)$
+3. **预测速度** (v-参数化)：$\hat{v} = v_\theta(\mathbf{x}_t, t)$
+   
+   定义速度：$v = \sqrt{\bar{\alpha}_t} \boldsymbol{\epsilon} - \sqrt{1-\bar{\alpha}_t} \mathbf{x}_0$
+   
+   这种参数化在不同SNR区域都稳定：
+   - 高SNR时，$v \approx -\mathbf{x}_0$（主要预测数据）
+   - 低SNR时，$v \approx \boldsymbol{\epsilon}$（主要预测噪声）
+
+**参数化之间的转换**：
+- 从噪声到数据：$\hat{\mathbf{x}}_0 = \frac{\mathbf{x}_t - \sqrt{1-\bar{\alpha}_t} \hat{\boldsymbol{\epsilon}}}{\sqrt{\bar{\alpha}_t}}$
+- 从数据到噪声：$\hat{\boldsymbol{\epsilon}} = \frac{\mathbf{x}_t - \sqrt{\bar{\alpha}_t} \hat{\mathbf{x}}_0}{\sqrt{1-\bar{\alpha}_t}}$
+- 从速度到数据/噪声：$\hat{\mathbf{x}}_0 = \sqrt{\bar{\alpha}_t} \mathbf{x}_t - \sqrt{1-\bar{\alpha}_t} \hat{v}$
 
 **实践中的选择**：
-- 预测噪声最常用（DDPM默认）
-- 预测数据在低SNR区域更稳定
-- 可以使用 v-参数化结合两者优点：$v = \sqrt{\bar{\alpha}_t} \boldsymbol{\epsilon} - \sqrt{1-\bar{\alpha}_t} \mathbf{x}_0$
+- **预测噪声**：DDPM默认，训练稳定，适合大多数场景
+- **预测数据**：在低SNR区域（$t$ 接近 $T$）更稳定，适合高分辨率
+- **v-参数化**：结合两者优点，Progressive Distillation等方法常用
+- **混合策略**：根据 $t$ 动态选择参数化
 
 ### 去噪分数匹配视角
 
-扩散模型与分数匹配有深刻联系。分数函数定义为：
+扩散模型与分数匹配有深刻联系，这提供了另一个理论框架。
+
+**分数函数**定义为对数概率密度的梯度：
 $$\mathbf{s}(\mathbf{x}, t) = \nabla_\mathbf{x} \log p_t(\mathbf{x})$$
 
-去噪分数匹配目标：
+分数函数的重要性：
+1. 不需要归一化常数（对比能量模型）
+2. 可以通过朗之万动力学采样
+3. 与去噪有自然联系
+
+**去噪分数匹配目标**：
 $$\mathcal{L}_{\text{DSM}} = \mathbb{E}_{t, \mathbf{x}_0, \boldsymbol{\epsilon}} \left[ \lambda(t) \left\| \mathbf{s}_\theta(\mathbf{x}_t, t) - \nabla_{\mathbf{x}_t} \log q(\mathbf{x}_t | \mathbf{x}_0) \right\|^2 \right]$$
 
-由于 $q(\mathbf{x}_t | \mathbf{x}_0)$ 是高斯分布，其分数有闭式解：
+由于 $q(\mathbf{x}_t | \mathbf{x}_0) = \mathcal{N}(\mathbf{x}_t; \sqrt{\bar{\alpha}_t}\mathbf{x}_0, (1-\bar{\alpha}_t)\mathbf{I})$ 是高斯分布，其分数有闭式解：
+
 $$\nabla_{\mathbf{x}_t} \log q(\mathbf{x}_t | \mathbf{x}_0) = -\frac{1}{1-\bar{\alpha}_t}(\mathbf{x}_t - \sqrt{\bar{\alpha}_t}\mathbf{x}_0) = -\frac{1}{\sqrt{1-\bar{\alpha}_t}}\boldsymbol{\epsilon}$$
 
-因此，学习分数等价于学习去噪！
+**关键洞察**：学习分数等价于学习去噪！
+
+这建立了三个等价视角：
+1. **概率视角**：学习反向转移概率 $p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t)$
+2. **去噪视角**：学习从噪声数据恢复干净数据
+3. **分数视角**：学习数据分布的分数函数
+
+**连续时间极限**：当 $T \to \infty$，扩散过程收敛到随机微分方程（SDE）：
+$$d\mathbf{x} = f(\mathbf{x}, t)dt + g(t)d\mathbf{w}$$
+
+对应的概率流ODE：
+$$\frac{d\mathbf{x}}{dt} = f(\mathbf{x}, t) - \frac{1}{2}g(t)^2 \nabla_\mathbf{x} \log p_t(\mathbf{x})$$
 
 ## 11.4 DDPM：去噪扩散概率模型
 
